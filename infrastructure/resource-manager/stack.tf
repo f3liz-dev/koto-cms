@@ -262,10 +262,14 @@ resource "oci_devops_build_pipeline_stage" "build" {
   build_spec_file           = "infrastructure/oci-devops/build_spec.yaml"
   image                     = "OL8_X86_64_STANDARD_10"
   
-  primary_code_repository {
-    repository_id  = oci_devops_repository.cms.id
-    repository_url = oci_devops_repository.cms.http_url
-    branch         = var.github_branch
+  build_source_collection {
+    items {
+      connection_type = "DEVOPS_CODE_REPOSITORY"
+      repository_id   = oci_devops_repository.cms.id
+      repository_url  = oci_devops_repository.cms.http_url
+      branch          = var.github_branch
+      name            = "primary"
+    }
   }
   
   build_pipeline_stage_predecessor_collection {
