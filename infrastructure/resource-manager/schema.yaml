@@ -78,6 +78,7 @@ variables:
     required: true
     dependsOn:
       compartmentId: ${compartment_id}
+      vaultId: ${vault_id}
 
   github_repo:
     type: string
