@@ -46,7 +46,7 @@ export async function initiateMiAuthFlow(
   const callbackUrl       = Deno.env.get("MIAUTH_CALLBACK_URL") ?? "http://localhost:3000/miauth/callback";
 
   const authUrl = new URL(`/miauth/${sessionId}`, actualInstanceUrl);
-  authUrl.searchParams.set("name", Deno.env.get("APP_NAME") ?? "f3liz CMS");
+  authUrl.searchParams.set("name", Deno.env.get("APP_NAME") ?? "Koto");
   authUrl.searchParams.set("callback", callbackUrl);
   authUrl.searchParams.set("permission", "read:account");
 

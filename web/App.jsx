@@ -369,7 +369,7 @@ export function App() {
       <div id="screen-login" class="screen login-screen">
         <div class="w-full max-w-md rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-8 shadow-sm">
           <div class="mb-8 text-center">
-            <p class="text-xs uppercase tracking-[0.2em] text-on-surface-variant">F3liz CMS</p>
+            <p class="text-xs uppercase tracking-[0.2em] text-on-surface-variant">Koto</p>
             <h1 class="mt-2 text-3xl font-extrabold tracking-tight">Sign in</h1>
             <p class="mt-2 text-sm text-on-surface-variant">Use your Fediverse handle to continue.</p>
           </div>
@@ -415,7 +415,7 @@ export function App() {
             >
               <span class="material-symbols-outlined text-xl">{sidebarOpen ? "close" : "menu"}</span>
             </button>
-            <span class="text-lg font-bold tracking-tighter">F3liz CMS</span>
+            <span class="text-lg font-bold tracking-tighter">Koto</span>
             <div class="h-4 w-px bg-outline-variant opacity-20 hidden md:block" />
             <span class="hidden md:block text-on-surface-variant max-w-72 truncate">{repo}</span>
           </div>

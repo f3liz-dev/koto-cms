@@ -52,7 +52,7 @@ function hdrs(token: string): Record<string, string> {
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
     "Content-Type": "application/json",
-    "User-Agent": "f3liz-cms/1.0",
+    "User-Agent": "koto-cms/1.0",
   };
 }
 
@@ -213,7 +213,7 @@ export async function ensureDraftPr(
     method: "POST",
     body: JSON.stringify({
       title: `[Draft] CMS edit by \`${fediHandle}\` on ${date}`,
-      body:  `Draft PR created by f3liz CMS.\n\nAuthor: \`${fediHandle}\`\nDate: ${date}`,
+      body:  `Draft PR created by Koto.\n\nAuthor: \`${fediHandle}\`\nDate: ${date}`,
       head:  branchName,
       base,
       draft: true,

@@ -2,7 +2,7 @@ version: 1.0
 component: deployment
 env:
   variables:
-    FUNCTION_NAME: "f3liz-cms-function"
+    FUNCTION_NAME: "koto-cms-function"
   exportedVariables:
     - DEPLOYMENT_STATUS
 

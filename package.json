@@ -1,5 +1,5 @@
 {
-  "name": "f3liz-cms-frontend",
+  "name": "koto-cms",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy:frontend": "npm run build && node infrastructure/scripts/upload-frontend.js",
-    "docker:build": "docker build -f Dockerfile.backend -t f3liz-cms:latest .",
-    "docker:run": "docker run -p 3000:3000 --env-file .env f3liz-cms:latest"
+    "docker:build": "docker build -f Dockerfile.backend -t koto-cms:latest .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env koto-cms:latest"
   },
   "dependencies": {
     "@mdit-vue/plugin-sfc": "^3.0.2",

@@ -6,7 +6,7 @@ set -euo pipefail
 
 REGION="${1:-us-ashburn-1}"
 NAMESPACE="${2:-}"
-PROJECT_NAME="f3liz-cms"
+PROJECT_NAME="koto-cms"
 
 if [ -z "$NAMESPACE" ]; then
   echo "Error: OCI namespace required"
@@ -14,7 +14,7 @@ if [ -z "$NAMESPACE" ]; then
   exit 1
 fi
 
-echo "=== F3liz CMS Manual Deployment ==="
+echo "=== Koto Manual Deployment ==="
 echo "Region: $REGION"
 echo "Namespace: $NAMESPACE"
 echo ""

@@ -1,4 +1,4 @@
-# f3liz CMS
+# Koto
 
 A lightweight, stateless CMS backend that bridges **Fediverse (MiAuth)
 authentication** with **GitHub-based content storage**, designed to run on **OCI
@@ -17,7 +17,7 @@ Browser (CMS UI)
     │  1. GET /auth/login?handle=@you@misskey.io
     ▼
 ┌──────────────────────────────────┐
-│  f3liz CMS server                │
+│  Koto server                     │
 │  (OCI Function or Deno process)  │
 │                                  │
 │  • Validates handle + allowlist  │
@@ -31,7 +31,7 @@ Browser (CMS UI)
               │  3. GET /miauth/callback?session=<sessionId>
               ▼
 ┌──────────────────────────────────┐
-│  f3liz CMS server                │
+│  Koto server                     │
 │                                  │
 │  • Verifies MiAuth session       │
 │  • Checks allowlist              │
@@ -58,7 +58,7 @@ Browser (CMS UI)
 ## File Structure
 
 ```
-f3liz-cms/
+koto-cms/
 ├── Dockerfile                  # OCI Functions / Docker build
 ├── docker-compose.yml          # Local development
 ├── .env.example                # Environment variable template
@@ -94,7 +94,7 @@ f3liz-cms/
 | `MIAUTH_CALLBACK_URL`   | ✅       | `http://localhost:3000/miauth/callback` | Publicly reachable callback URL           |
 | `GITHUB_BRANCH`         | —        | `main`                                  | Base branch                               |
 | `SESSION_TTL_HOURS`     | —        | `8`                                     | Session lifetime                          |
-| `APP_NAME`              | —        | `f3liz CMS`                             | Name shown in MiAuth authorization screen |
+| `APP_NAME`              | —        | `Koto`                                  | Name shown in MiAuth authorization screen |
 | `DOCUMENT_EDITORS_FILE` | —        | —                                       | Path to file with one handle per line     |
 | `FRONTEND_URL`          | ✅*      | —                                       | Object Storage URL for frontend assets    |
 
@@ -198,7 +198,7 @@ github_bot_token    = "ghp_xxxxx"  # For GitHub API
 session_secret      = "$(openssl rand -base64 32)"
 document_editors    = "@user@instance"
 miauth_callback_url = "https://your-gateway-url/miauth/callback"
-function_image      = "us-ashburn-1.ocir.io/namespace/f3liz-cms:latest"
+function_image      = "us-ashburn-1.ocir.io/namespace/koto-cms:latest"
 EOF
 
 # Deploy everything (infrastructure + DevOps pipelines)
@@ -219,11 +219,11 @@ See [infrastructure/oci-devops/README.md](infrastructure/oci-devops/README.md) f
 
 2. **Set Function Config** (all env vars above) via Console or CLI:
    ```bash
-   fn config function <app-name> f3liz-cms SESSION_SECRET <random-32-chars>
-   fn config function <app-name> f3liz-cms GITHUB_BOT_TOKEN <pat>
-   fn config function <app-name> f3liz-cms GITHUB_REPO myorg/content-repo
-   fn config function <app-name> f3liz-cms DOCUMENT_EDITORS "@alice@misskey.io"
-   fn config function <app-name> f3liz-cms MIAUTH_CALLBACK_URL https://<fn-url>/miauth/callback
+   fn config function <app-name> koto-cms SESSION_SECRET <random-32-chars>
+   fn config function <app-name> koto-cms GITHUB_BOT_TOKEN <pat>
+   fn config function <app-name> koto-cms GITHUB_REPO myorg/content-repo
+   fn config function <app-name> koto-cms DOCUMENT_EDITORS "@alice@misskey.io"
+   fn config function <app-name> koto-cms MIAUTH_CALLBACK_URL https://<fn-url>/miauth/callback
    ```
 
 3. **Deploy:**

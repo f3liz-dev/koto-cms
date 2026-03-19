@@ -1,6 +1,6 @@
 # Infrastructure Setup
 
-This directory contains infrastructure-as-code and deployment scripts for the f3liz CMS.
+This directory contains infrastructure-as-code and deployment scripts for Koto.
 
 ## Architecture
 
@@ -114,7 +114,7 @@ npm run build
 |----------|---------|-------------|
 | `GITHUB_BRANCH` | `main` | Base branch |
 | `SESSION_TTL_HOURS` | `8` | Session lifetime |
-| `APP_NAME` | `f3liz CMS` | Display name |
+| `APP_NAME` | `Koto` | Display name |
 | `CMS_PORT` | `3000` | Server port |
 
 ## Technology Stack
@@ -182,7 +182,7 @@ npm run build
 fn logs get <app-name> <function-name>
 
 # Via OCI Console
-Functions → Applications → f3liz-cms-app → Logs
+Functions → Applications → koto-cms-app → Logs
 ```
 
 ### DevOps Logs
@@ -207,10 +207,10 @@ oci monitoring metric-data summarize-metrics-data \
 ### Frontend not loading
 ```bash
 # Check bucket is public
-oci os bucket get --bucket-name f3liz-cms-frontend
+oci os bucket get --bucket-name koto-cms-frontend
 
 # Test direct access
-curl https://objectstorage.us-ashburn-1.oraclecloud.com/n/namespace/b/f3liz-cms-frontend/o/index.html
+curl https://objectstorage.us-ashburn-1.oraclecloud.com/n/namespace/b/koto-cms-frontend/o/index.html
 
 # Verify FRONTEND_URL in function config
 oci fn application get --application-id <app-ocid>
@@ -219,7 +219,7 @@ oci fn application get --application-id <app-ocid>
 ### Backend errors
 ```bash
 # Check function logs
-fn logs get f3liz-cms-app f3liz-cms-function
+fn logs get koto-cms-app koto-cms-function
 
 # Test health endpoint
 curl https://your-gateway-url/health

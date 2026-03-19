@@ -5,7 +5,7 @@ terraform {
   backend "s3" {
     # OCI Object Storage S3-compatible endpoint
     bucket   = "terraform-state"
-    key      = "f3liz-cms/terraform.tfstate"
+    key      = "koto-cms/terraform.tfstate"
     region   = "us-ashburn-1"
     endpoint = "https://[namespace].compat.objectstorage.[region].oraclecloud.com"
     

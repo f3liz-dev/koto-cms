@@ -21,7 +21,7 @@ variable "subnet_id" {
 variable "project_name" {
   description = "Project name prefix"
   type        = string
-  default     = "f3liz-cms"
+  default     = "koto-cms"
 }
 
 variable "github_bot_token" {
@@ -65,7 +65,7 @@ variable "miauth_callback_url" {
 variable "app_name" {
   description = "Application display name"
   type        = string
-  default     = "f3liz CMS"
+  default     = "Koto"
 }
 
 variable "function_image" {

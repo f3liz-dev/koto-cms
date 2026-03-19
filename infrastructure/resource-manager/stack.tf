@@ -37,7 +37,7 @@ variable "subnet_id" {
 variable "project_name" {
   description = "Project name prefix"
   type        = string
-  default     = "f3liz-cms"
+  default     = "koto-cms"
 }
 
 # Environment Variables (Simple - No Vault)
@@ -82,7 +82,7 @@ variable "miauth_callback_url" {
 variable "app_name" {
   description = "Application display name"
   type        = string
-  default     = "f3liz CMS"
+  default     = "Koto"
 }
 
 variable "github_access_token" {
@@ -208,7 +208,7 @@ resource "oci_apigateway_deployment" "cms" {
 resource "oci_devops_project" "cms" {
   compartment_id = var.compartment_id
   name           = "${var.project_name}-devops"
-  description    = "DevOps project for f3liz CMS"
+  description    = "DevOps project for Koto"
   
   notification_config {
     topic_id = oci_ons_notification_topic.devops.id

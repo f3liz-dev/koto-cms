@@ -3,7 +3,7 @@ set -euo pipefail
 
 # OCI Resource Manager Stack作成スクリプト
 
-echo "=== F3liz CMS Stack作成 ==="
+echo "=== Koto Stack作成 ==="
 
 # ZIPファイル作成
 echo "1. Stackファイルをパッケージング..."
@@ -36,6 +36,6 @@ echo ""
 echo "oci resource-manager stack create \\"
 echo "  --compartment-id <compartment-ocid> \\"
 echo "  --config-source stack.zip \\"
-echo "  --display-name 'F3liz CMS Stack' \\"
+echo "  --display-name 'Koto Stack' \\"
 echo "  --description 'Serverless CMS with Fediverse auth'"
 echo ""

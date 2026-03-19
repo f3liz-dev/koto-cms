@@ -4,7 +4,7 @@
 resource "oci_devops_project" "cms" {
   compartment_id = var.compartment_id
   name           = "${var.project_name}-devops"
-  description    = "DevOps project for f3liz CMS"
+  description    = "DevOps project for Koto"
   
   notification_config {
     topic_id = oci_ons_notification_topic.devops.id

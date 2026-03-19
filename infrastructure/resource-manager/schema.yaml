@@ -1,4 +1,4 @@
-title: "F3liz CMS - OCI Resource Manager Stack"
+title: "Koto - OCI Resource Manager Stack"
 description: "Serverless CMS with Fediverse authentication"
 schemaVersion: 1.1.0
 version: "1.0.0"
@@ -61,14 +61,14 @@ variables:
   github_repo:
     type: string
     title: "DevOps用GitHubリポジトリ"
-    description: "OCI DevOpsがミラーリングするリポジトリ（例: f3liz-dev/casa.f3liz.docs）"
+    description: "OCI DevOpsがミラーリングするリポジトリ（例: owner/repo）"
     required: true
     pattern: "^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$"
 
   content_repo:
     type: string
     title: "コンテンツ管理用GitHubリポジトリ"
-    description: "記事を管理するリポジトリ（例: f3liz-dev/content）"
+    description: "記事を管理するリポジトリ（例: owner/content）"
     required: true
     pattern: "^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$"
 
@@ -114,11 +114,11 @@ variables:
     type: string
     title: "アプリケーション名"
     description: "MiAuth認証画面に表示される名前"
-    default: "f3liz CMS"
+    default: "Koto"
 
   project_name:
     type: string
     title: "プロジェクト名"
     description: "リソース名のプレフィックス"
-    default: "f3liz-cms"
+    default: "koto-cms"
     pattern: "^[a-z0-9-]+$"

@@ -51,7 +51,7 @@ github_bot_token    = "ghp_xxxxx"
 session_secret      = "$(openssl rand -base64 32)"
 document_editors    = "@user@instance"
 miauth_callback_url = "https://your-gateway-url/miauth/callback"
-function_image      = "us-ashburn-1.ocir.io/namespace/f3liz-cms:latest"
+function_image      = "us-ashburn-1.ocir.io/namespace/koto-cms:latest"
 EOF
 
 # Deploy everything (including DevOps)
@@ -82,9 +82,9 @@ ALL {resource.type = 'devopsbuildpipeline', resource.compartment.id = '<compartm
 
 **Policies (No Auth Token Needed!):**
 ```
-Allow dynamic-group f3liz-cms-devops-dg to manage repos in tenancy
-Allow dynamic-group f3liz-cms-devops-dg to read repos in tenancy
-Allow dynamic-group f3liz-cms-devops-dg to use repos in tenancy
+Allow dynamic-group koto-cms-devops-dg to manage repos in tenancy
+Allow dynamic-group koto-cms-devops-dg to read repos in tenancy
+Allow dynamic-group koto-cms-devops-dg to use repos in tenancy
 ```
 
 This allows the build pipeline to push to OCIR using **resource principal authentication** - no manual auth token creation required!
@@ -149,7 +149,7 @@ oci devops deployment get --deployment-id <deployment-ocid>
 fn logs get <app-name> <function-name>
 
 # Via OCI Console
-Functions → Applications → f3liz-cms-app → Logs
+Functions → Applications → koto-cms-app → Logs
 ```
 
 ## Customization

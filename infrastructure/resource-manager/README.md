@@ -41,7 +41,7 @@ OCI Resource Managerを使用した完全マネージド型デプロイメント
 - ビルド設定 (`package.json`, `Dockerfile.backend`)
 - DevOps設定 (`infrastructure/oci-devops/build_spec.yaml`)
 
-**例:** `f3liz-dev/casa.f3liz.docs`
+**例:** `owner/repo`
 
 ### 2. コンテンツ管理用リポジトリ (`content_repo`)
 
@@ -52,7 +52,7 @@ OCI Resource Managerを使用した完全マネージド型デプロイメント
 - 画像・アセット (`docs/images/`)
 - 記事メタデータ
 
-**例:** `f3liz-dev/content`
+**例:** `owner/content`
 
 ### なぜ分離するのか？
 
@@ -98,10 +98,10 @@ cd infrastructure/resource-manager
 | `compartment_id` | コンパートメントOCID | ドロップダウン選択 |
 | `tenancy_ocid` | テナンシーOCID | **UI自動入力** |
 | `subnet_id` | サブネットOCID | ドロップダウン選択 |
-| `github_repo` | DevOps用GitHubリポジトリ | 手動入力（例: `f3liz-dev/casa.f3liz.docs`） |
-| `content_repo` | コンテンツ管理用GitHubリポジトリ | 手動入力（例: `f3liz-dev/content`） |
+| `github_repo` | DevOps用GitHubリポジトリ | 手動入力（例: `owner/repo`） |
+| `content_repo` | コンテンツ管理用GitHubリポジトリ | 手動入力（例: `owner/content`） |
 | `github_bot_token` | GitHub PAT | 手動入力 |
-| `github_repo` | GitHubリポジトリ | 手動入力（例: `f3liz-dev/casa.f3liz.docs`） |
+| `github_repo` | GitHubリポジトリ | 手動入力（例: `owner/repo`） |
 | `session_secret` | セッション署名秘密鍵 | 手動入力（32文字以上） |
 | `document_editors` | 許可するFediverseハンドル | 手動入力（例: `@user@instance`） |
 | `miauth_callback_url` | MiAuthコールバックURL | 手動入力 |
@@ -229,8 +229,8 @@ git push origin main
 **解決:** 最初のデプロイ前に手動でイメージをプッシュ
 
 ```bash
-docker build -f Dockerfile.backend -t <region>.ocir.io/<namespace>/f3liz-cms:latest .
-docker push <region>.ocir.io/<namespace>/f3liz-cms:latest
+docker build -f Dockerfile.backend -t <region>.ocir.io/<namespace>/koto-cms:latest .
+docker push <region>.ocir.io/<namespace>/koto-cms:latest
 ```
 
 ### Provisioned Concurrency設定できない
@@ -254,7 +254,7 @@ docker push <region>.ocir.io/<namespace>/f3liz-cms:latest
 
 4. **タグ付け**
    - コスト追跡のためにリソースにタグを追加
-   - `Environment: production`, `Project: f3liz-cms`
+   - `Environment: production`, `Project: koto-cms`
 
 ## 参考リンク
 

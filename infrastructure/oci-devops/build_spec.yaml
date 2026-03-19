@@ -6,7 +6,7 @@ shell: bash
 env:
   variables:
     DOCKER_REGISTRY: "${OCI_REGION}.ocir.io"
-    DOCKER_REPO: "${OCI_NAMESPACE}/f3liz-cms"
+    DOCKER_REPO: "${OCI_NAMESPACE}/koto-cms"
   exportedVariables:
     - DOCKER_IMAGE_TAG
 
