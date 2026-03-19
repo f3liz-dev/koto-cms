@@ -1,0 +1,702 @@
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  background-color: #faf9f7;
+  color: #303331;
+  font-family: "Manrope", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Screen shells ─────────────────────────────────────────── */
+
+.screen {
+  min-height: 100dvh;
+  height: 100dvh;
+}
+
+.login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+/* ─── App layout: header + body ─────────────────────────────── */
+
+.app-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+#app-topbar {
+  flex: 0 0 auto;
+}
+
+/* app-body fills the remaining height and holds sidebar + editor side by side */
+.app-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* editor-main fills the space beside the sidebar */
+.editor-main {
+  flex: 1 1 auto;
+  min-width: 0;          /* prevent flex child expanding past parent */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #faf9f7;
+}
+
+.no-file-hint {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* editor-pane fills editor-main completely */
+.editor-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── Icons ──────────────────────────────────────────────────── */
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
+  vertical-align: middle;
+}
+
+.icon-filled {
+  font-variation-settings: "FILL" 1, "wght" 300, "GRAD" 0, "opsz" 24;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e1e3e0;
+  border-radius: 10px;
+}
+
+/* ─── Editor workspace ───────────────────────────────────────── */
+
+.editor-textarea-wrap {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow-y: scroll;      /* always reserve scrollbar gutter — prevents width jump on keystroke */
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.editor-workspace {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-workspace.has-preview .editor-textarea-wrap {
+  flex: 1 1 56%;
+  border-right: 1px solid rgba(176, 178, 176, 0.25);
+}
+
+/* ─── Preview pane ───────────────────────────────────────────── */
+
+.preview-pane {
+  flex: 1 1 44%;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.preview-pane-head {
+  padding: 0.7rem 0.9rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5d605e;
+  border-bottom: 1px solid rgba(176, 178, 176, 0.3);
+}
+
+.preview-warnings {
+  margin: 0;
+  padding: 0.5rem 0.9rem;
+  list-style: disc;
+  list-style-position: inside;
+  font-size: 0.75rem;
+  color: #a83836;
+  border-bottom: 1px solid rgba(168, 56, 54, 0.22);
+  background: rgba(168, 56, 54, 0.05);
+}
+
+.preview-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: white;
+}
+
+/* ─── Markdown editor shell ──────────────────────────────────── */
+
+.editor-shell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+}
+
+/* ─── Frontmatter ────────────────────────────────────────────── */
+
+.frontmatter-wrap {
+  margin: 1rem 3rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(176, 178, 176, 0.45);
+  border-radius: 0.65rem;
+  background: rgba(244, 244, 241, 0.9);
+}
+
+.frontmatter-wrap-empty {
+  background: rgba(244, 244, 241, 0.55);
+}
+
+.frontmatter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.frontmatter-head .frontmatter-label {
+  margin-bottom: 0;
+}
+
+.frontmatter-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5d605e;
+  margin-bottom: 0.4rem;
+}
+
+.frontmatter-toggle {
+  border: 0;
+  border-radius: 0.45rem;
+  background: rgba(84, 95, 118, 0.1);
+  color: #545f76;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  cursor: pointer;
+}
+
+.frontmatter-toggle:hover {
+  background: rgba(84, 95, 118, 0.16);
+}
+
+.frontmatter-editor {
+  width: 100%;
+  min-height: 5.5rem;
+  resize: vertical;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #303331;
+  font-family: "ui-monospace", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.frontmatter-hint {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #5d605e;
+}
+
+/* ─── Editor surface (Milkdown) ──────────────────────────────── */
+
+.editor-surface {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  min-height: 0;
+  padding: 0.65rem 3rem 2rem;
+  box-sizing: border-box;
+}
+
+.editor-surface .milkdown {
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  background: transparent;
+  --crepe-color-background: transparent;
+  --crepe-color-surface: #f7f7f7;
+  --crepe-color-surface-low: #f0f1ef;
+  --crepe-color-on-background: #303331;
+  --crepe-color-on-surface: #303331;
+  --crepe-color-on-surface-variant: #5d605e;
+  --crepe-color-outline: #b0b2b0;
+  --crepe-color-primary: #545f76;
+  --crepe-color-secondary: #d9dde6;
+  --crepe-color-on-secondary: #303331;
+  --crepe-color-hover: #edeeec;
+  --crepe-color-selected: #dfe2df;
+  --crepe-font-default: "Manrope", sans-serif;
+  --crepe-font-title: "Manrope", sans-serif;
+}
+
+.editor-surface .ProseMirror {
+  min-height: 100%;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  outline: none;
+  font-family: "Manrope", sans-serif;
+  color: #303331;
+  caret-color: #303331;
+  line-height: 1.75;
+  font-size: 0.95rem;
+}
+
+.editor-surface .milkdown .ProseMirror {
+  box-sizing: border-box;
+  padding: 0 60px;
+}
+
+/* ProseMirror is a flex container (Milkdown sets this). With white-space:pre-wrap
+   on the contenteditable, flex children grow to fit text instead of wrapping —
+   unless we give them an explicit width of 0 and let them grow via flex.
+   The authoritative fix from the CSS spec: set width:0; min-width:100% on the
+   direct contenteditable child, forcing the browser to use the container width
+   as the line-wrap boundary rather than text intrinsic width. */
+.editor-surface .ProseMirror > * {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  /* Prevent any individual block from becoming a flex item that expands */
+  flex-shrink: 1;
+  flex-grow: 0;
+}
+
+/* The editor-surface itself must not expand beyond its flex allocation */
+.editor-surface,
+.editor-surface .milkdown,
+.editor-surface .ProseMirror {
+  contain: inline-size; /* modern browsers: hard boundary for inline sizing */
+}
+
+.editor-surface .milkdown .ProseMirror[data-dragging="true"] {
+  box-sizing: border-box;
+  padding: 0 60px !important;
+  margin: 0 !important;
+}
+
+.editor-surface .milkdown .ProseMirror[data-dragging="true"] h1,
+.editor-surface .milkdown .ProseMirror[data-dragging="true"] h2,
+.editor-surface .milkdown .ProseMirror[data-dragging="true"] h3,
+.editor-surface .milkdown .ProseMirror[data-dragging="true"] h4,
+.editor-surface .milkdown .ProseMirror[data-dragging="true"] h5,
+.editor-surface .milkdown .ProseMirror[data-dragging="true"] h6 {
+  font-family: var(--crepe-font-title);
+  font-weight: 400;
+  padding: 2px 0;
+}
+
+.editor-surface .milkdown .ProseMirror[data-dragging="true"] h1 {
+  font-size: 42px;
+  line-height: 50px;
+  margin-top: 32px;
+}
+
+/* ─── Plain textarea editor ──────────────────────────────────── */
+
+.plain-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #303331;
+  font-family: "ui-monospace", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  padding: 2rem 3rem;
+  box-sizing: border-box;
+}
+
+/* ─── Writing canvas ruled lines ─────────────────────────────── */
+
+.writing-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(#e1e3e0 1px, transparent 1px);
+  background-size: 100% 1.6rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+/* ─── Sidebar tree ───────────────────────────────────────────── */
+
+.empty-hint {
+  color: #5d605e;
+}
+
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  color: #5d605e;
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.tree-item:hover {
+  background: #edeeec;
+  color: #303331;
+}
+
+.tree-item.is-dir {
+  font-weight: 700;
+  color: #506549;
+}
+
+.tree-item.tree-nav-up {
+  font-weight: 600;
+  color: #545f76;
+}
+
+.tree-item .tree-icon {
+  width: 1rem;
+  text-align: center;
+  opacity: 0.75;
+}
+
+.tree-item.active {
+  background: rgba(84, 95, 118, 0.08);
+  color: #545f76;
+  border-left: 2px solid #545f76;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* ─── PR state badge ─────────────────────────────────────────── */
+
+.pr-state {
+  border: 1px solid #b0b2b0;
+  border-radius: 9999px;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+}
+
+.pr-state.draft {
+  color: #545f76;
+  border-color: #545f76;
+}
+
+.pr-state.open {
+  color: #506549;
+  border-color: #506549;
+}
+
+/* ─── Toast ──────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(0.4rem);
+  background: #ffffff;
+  border: 1px solid #b0b2b0;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.78rem;
+  color: #303331;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast.error {
+  color: #a83836;
+  border-color: #a83836;
+}
+
+.toast.success {
+  color: #506549;
+  border-color: #506549;
+}
+
+/* ─── Focus topbar (hidden by default) ──────────────────────── */
+
+.focus-topbar,
+.focus-floating-help,
+.focus-footer-hint,
+.focus-toolbar {
+  display: none;
+}
+
+/* ─── Focus mode ─────────────────────────────────────────────── */
+/*
+  Strategy: hide chrome (topbar, sidebar, filebar, footer),
+  let app-body become a simple block so editor-pane can be
+  centered with auto margins. No absolute positioning or
+  overflow hacks needed.
+*/
+
+body.focus-mode #app-topbar,
+body.focus-mode #app-sidebar,
+body.focus-mode #editor-filebar,
+body.focus-mode #editor-footer {
+  display: none !important;
+}
+
+/* app-body becomes a plain scrolling container */
+body.focus-mode .app-body {
+  display: block;
+  overflow-y: auto;
+  height: calc(100dvh);
+}
+
+/* editor-main fills the full width, no sidebar offset */
+body.focus-mode .editor-main {
+  display: block;
+  overflow: visible;
+  height: auto;
+  min-height: 100%;
+}
+
+/* editor-pane is a readable centred column */
+body.focus-mode .editor-pane {
+  display: block;
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 6.5rem 1rem 8.5rem;
+  overflow: visible;
+  height: auto;
+}
+
+/* workspace inside focus mode: single column, no fixed height */
+body.focus-mode .editor-workspace {
+  display: block;
+  overflow: visible;
+  height: auto;
+}
+
+body.focus-mode .editor-textarea-wrap {
+  display: block;
+  overflow: visible;
+  height: auto;
+  min-height: 60vh;
+  border-right: none !important;
+}
+
+/* Show the focus topbar */
+body.focus-mode .focus-topbar {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: min(56rem, calc(100% - 2rem));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid rgba(176, 178, 176, 0.4);
+  border-radius: 0.8rem;
+  background: rgba(250, 249, 247, 0.85);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px rgba(48, 51, 49, 0.05);
+}
+
+/* Subtle ruled lines in focus mode */
+body.focus-mode .writing-canvas::before {
+  opacity: 0.1;
+}
+
+/* Slightly larger type in focus mode */
+body.focus-mode .editor-surface .ProseMirror {
+  font-size: 1.07rem;
+  line-height: 1.9;
+  padding-top: 0.85rem;
+}
+
+/* Focus toggle button highlight */
+#btn-focus-toggle.focus-toggle-active {
+  background: rgba(84, 95, 118, 0.12);
+  color: #545f76;
+}
+
+/* ─── Hidden utility ─────────────────────────────────────────── */
+
+[hidden] {
+  display: none !important;
+}
+
+/* ─── Preview Tab Overlay ────────────────────────────────────── */
+
+.preview-tab-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(48, 51, 49, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.preview-tab-container {
+  width: 100%;
+  max-width: 72rem;
+  height: 90vh;
+  max-height: 90vh;
+  background: #faf9f7;
+  border-radius: 1rem;
+  box-shadow: 0 20px 60px rgba(48, 51, 49, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.preview-tab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(176, 178, 176, 0.3);
+  background: rgba(250, 249, 247, 0.95);
+}
+
+.preview-tab-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.preview-tab-content .preview-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 1023px) {
+  .editor-workspace.has-preview {
+    flex-direction: column;
+  }
+
+  .editor-workspace.has-preview .editor-textarea-wrap {
+    border-right: 0;
+    border-bottom: 1px solid rgba(176, 178, 176, 0.25);
+  }
+
+  .preview-pane {
+    min-width: 0;
+    flex: 0 0 42vh;
+  }
+
+  .frontmatter-wrap {
+    margin: 0.75rem 1rem 0;
+  }
+
+  .editor-surface {
+    padding: 0.65rem 1rem 1.5rem;
+  }
+
+  .plain-editor {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .screen {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+
+  .editor-workspace.has-preview .editor-textarea-wrap {
+    flex-basis: 58%;
+  }
+
+  .preview-pane-head {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .preview-warnings {
+    padding: 0.45rem 0.75rem;
+  }
+}

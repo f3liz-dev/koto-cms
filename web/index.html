@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>F3liz CMS</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              surface: "#faf9f7",
+              "on-secondary": "#ebffe0",
+              "inverse-primary": "#d4e0fb",
+              "on-tertiary-fixed-variant": "#6b4747",
+              "on-surface": "#303331",
+              primary: "#545f76",
+              "error-dim": "#67040d",
+              background: "#faf9f7",
+              "surface-variant": "#e1e3e0",
+              "tertiary-fixed-dim": "#e9b8b8",
+              "primary-container": "#d4e0fb",
+              "secondary-dim": "#44593d",
+              "on-primary": "#f8f8ff",
+              "outline-variant": "#b0b2b0",
+              "primary-dim": "#485369",
+              "surface-container": "#edeeec",
+              "on-secondary-container": "#43573c",
+              "surface-bright": "#faf9f7",
+              "surface-container-high": "#e7e8e6",
+              "on-error": "#fff7f6",
+              "tertiary-dim": "#6e494a",
+              error: "#a83836",
+              "secondary-fixed": "#d2eac6",
+              "tertiary-fixed": "#f7c5c5",
+              "on-secondary-fixed-variant": "#4c6145",
+              "on-error-container": "#6e0a12",
+              "on-tertiary-container": "#613e3f",
+              outline: "#797b79",
+              "on-tertiary": "#fff7f6",
+              "inverse-surface": "#0d0e0e",
+              secondary: "#506549",
+              "on-secondary-fixed": "#31442b",
+              tertiary: "#7b5556",
+              "surface-tint": "#545f76",
+              "inverse-on-surface": "#9d9d9b",
+              "error-container": "#fa746f",
+              "on-primary-container": "#455066",
+              "on-primary-fixed-variant": "#4e5a70",
+              "secondary-container": "#d2eac6",
+              "surface-container-highest": "#e1e3e0",
+              "surface-container-low": "#f4f4f1",
+              "on-tertiary-fixed": "#4b2b2c",
+              "surface-dim": "#d9dad8",
+              "secondary-fixed-dim": "#c4dbb8",
+              "on-primary-fixed": "#323e53",
+              "surface-container-lowest": "#ffffff",
+              "on-background": "#303331",
+              "primary-fixed": "#d4e0fb",
+              "on-surface-variant": "#5d605e",
+              "tertiary-container": "#f7c5c5",
+              "primary-fixed-dim": "#c6d2ec",
+            },
+            fontFamily: {
+              headline: ["Manrope"],
+              body: ["Manrope"],
+              label: ["Plus Jakarta Sans"],
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="bg-background text-on-surface h-screen overflow-hidden font-body">
+    <div id="app"></div>
+    <script type="module" src="/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+version: 1.0
+component: deployment
+env:
+  variables:
+    FUNCTION_NAME: "f3liz-cms-function"
+  exportedVariables:
+    - DEPLOYMENT_STATUS
+
+steps:
+  - stepType: invokeFunctionDeploy
+    name: "Deploy to OCI Functions"
+    description: "Update function with new container image"
+    command: deploy
+    functionId: ${FUNCTION_OCID}
+    dockerImage: ${DOCKER_IMAGE}
+    timeout: 300
+
+  - stepType: command
+    name: "Verify Deployment"
+    command: |
+      echo "Waiting for function to be active..."
+      sleep 10
+      
+      # Test health endpoint
+      GATEWAY_URL="${API_GATEWAY_URL}"
+      HEALTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" ${GATEWAY_URL}/health)
+      
+      if [ "$HEALTH_CHECK" = "200" ]; then
+        echo "✓ Deployment successful - Health check passed"
+        export DEPLOYMENT_STATUS="success"
+      else
+        echo "✗ Deployment failed - Health check returned ${HEALTH_CHECK}"
+        export DEPLOYMENT_STATUS="failed"
+        exit 1
+      fi
+
+  - stepType: command
+    name: "Notify Deployment"
+    command: |
+      echo "Deployment completed at $(date)"
+      echo "Image: ${DOCKER_IMAGE}"
+      echo "Function: ${FUNCTION_NAME}"

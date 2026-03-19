@@ -1,0 +1,26 @@
+# docker-compose.yml — Local development only
+# For production, use OCI Functions + Object Storage
+# Usage:
+#   cp .env.example .env   # fill in secrets
+#   docker compose up      # backend only
+#   npm run dev            # frontend (separate terminal)
+
+version: "3.9"
+
+services:
+  cms:
+    build: .
+    environment:
+      - CMS_PORT=3000
+      - CMS_HOST=0.0.0.0
+      - GITHUB_BOT_TOKEN=${GITHUB_BOT_TOKEN}
+      - GITHUB_REPO=${GITHUB_REPO}
+      - GITHUB_BRANCH=${GITHUB_BRANCH:-main}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - SESSION_TOKEN_VERSION=${SESSION_TOKEN_VERSION:-1}
+      - DOCUMENT_EDITORS=${DOCUMENT_EDITORS}
+      - MIAUTH_CALLBACK_URL=${MIAUTH_CALLBACK_URL:-http://localhost:3000/miauth/callback}
+      - APP_NAME=${APP_NAME:-f3liz CMS}
+      # FRONTEND_URL not set for local dev (use Vite dev server instead)
+    ports:
+      - "3000:3000"

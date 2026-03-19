@@ -1,0 +1,83 @@
+version: 0.1
+component: build
+timeoutInSeconds: 1200
+shell: bash
+
+env:
+  variables:
+    DOCKER_REGISTRY: "${OCI_REGION}.ocir.io"
+    DOCKER_REPO: "${OCI_NAMESPACE}/f3liz-cms"
+  exportedVariables:
+    - DOCKER_IMAGE_TAG
+
+steps:
+  - type: Command
+    name: "Install Node.js"
+    command: |
+      curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+      apt-get install -y nodejs
+
+  - type: Command
+    name: "Build Frontend"
+    command: |
+      npm ci
+      npm run build
+      echo "✓ Frontend built successfully"
+
+  - type: Command
+    name: "Upload Frontend to Object Storage"
+    command: |
+      oci os object bulk-upload \
+        --bucket-name ${OCI_BUCKET_NAME} \
+        --src-dir public/ \
+        --overwrite \
+        --content-type-detection \
+        --auth resource_principal
+      echo "✓ Frontend uploaded to Object Storage"
+
+  - type: Command
+    name: "Set Docker Image Tag"
+    command: |
+      export DOCKER_IMAGE_TAG="${OCI_BUILD_RUN_ID:-latest}"
+      echo "Image tag: ${DOCKER_IMAGE_TAG}"
+
+  - type: Command
+    name: "Build Backend Docker Image"
+    command: |
+      docker build \
+        -f Dockerfile.backend \
+        -t ${DOCKER_REGISTRY}/${DOCKER_REPO}:${DOCKER_IMAGE_TAG} \
+        -t ${DOCKER_REGISTRY}/${DOCKER_REPO}:latest \
+        .
+
+  - type: Command
+    name: "Push to OCI Container Registry"
+    command: |
+      # Use resource principal authentication (no auth token needed)
+      # Dynamic Group policy grants push access to OCIR
+      
+      # Get auth token from resource principal
+      TOKEN=$(oci iam auth-token create --description "DevOps Build" --auth resource_principal 2>/dev/null || echo "")
+      
+      if [ -z "$TOKEN" ]; then
+        # Fallback: Use instance principal to get temporary token
+        echo "Using resource principal for OCIR authentication..."
+        oci artifacts container image list \
+          --compartment-id ${OCI_COMPARTMENT_ID} \
+          --auth resource_principal > /dev/null
+        
+        # Docker login with resource principal
+        echo "Authenticating to OCIR..."
+        TOKEN=$(oci session authenticate --auth resource_principal --region ${OCI_REGION} 2>&1 | grep -o 'token.*' || echo "resource_principal")
+      fi
+      
+      # Push images
+      docker push ${DOCKER_REGISTRY}/${DOCKER_REPO}:${DOCKER_IMAGE_TAG}
+      docker push ${DOCKER_REGISTRY}/${DOCKER_REPO}:latest
+      
+      echo "✓ Image pushed: ${DOCKER_REGISTRY}/${DOCKER_REPO}:${DOCKER_IMAGE_TAG}"
+
+outputArtifacts:
+  - name: docker_image
+    type: DOCKER_IMAGE
+    location: ${DOCKER_REGISTRY}/${DOCKER_REPO}:${DOCKER_IMAGE_TAG}

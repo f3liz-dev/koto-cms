@@ -1,0 +1,24 @@
+FROM denoland/deno:2.3.3 AS build
+WORKDIR /function
+COPY src ./src
+
+# Compile to standalone binary (no runtime needed, no file serving)
+RUN deno compile \
+  --allow-net \
+  --allow-env \
+  --output fn-server \
+  src/func.ts
+
+FROM oraclelinux:9-slim
+
+RUN groupadd --gid 1000 fn && \
+    useradd --uid 1000 --gid 1000 fn
+
+WORKDIR /function
+
+# Copy only the compiled binary (no Deno runtime)
+COPY --chown=fn:fn --from=build /function/fn-server .
+
+USER fn
+
+ENTRYPOINT ["./fn-server"]

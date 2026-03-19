@@ -1,0 +1,32 @@
+{
+  "name": "f3liz-cms-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy:frontend": "npm run build && node infrastructure/scripts/upload-frontend.js",
+    "docker:build": "docker build -f Dockerfile.backend -t f3liz-cms:latest .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env f3liz-cms:latest"
+  },
+  "dependencies": {
+    "@mdit-vue/plugin-sfc": "^3.0.2",
+    "@milkdown/crepe": "^7.17.1",
+    "@milkdown/utils": "^7.19.0",
+    "dompurify": "^3.3.3",
+    "front-matter": "^4.0.2",
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^14.1.0",
+    "markdown-it-container": "^4.0.0",
+    "preact": "^10.27.2",
+    "remark-directive": "^4.0.0",
+    "remark-frontmatter": "^5.0.0",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.2",
+    "vite": "^8.0.0"
+  }
+}
