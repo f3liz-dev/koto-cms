@@ -35,6 +35,7 @@ variableGroups:
   - title: "詳細設定（オプション）"
     variables:
       - project_name
+      - function_image
 
 variables:
   region:
@@ -144,3 +145,9 @@ variables:
     description: "リソース名のプレフィックス"
     default: "koto-cms"
     pattern: "^[a-z0-9-]+$"
+
+  function_image:
+    type: string
+    title: "Function イメージURI（初回はデフォルトのまま）"
+    description: "初回デプロイ後、DevOps Pipelineが自動的に実際のイメージに更新します"
+    default: "phx.ocir.io/oracle/oci-cli:latest"

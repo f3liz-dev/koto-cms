@@ -22,6 +22,12 @@ resource "oci_vault_secret" "github_bot_token" {
     content_type = "BASE64"
     content      = base64encode(var.github_bot_token)
   }
+  
+  lifecycle {
+    ignore_changes = [secret_content]
+    # After initial creation, update secrets via Vault Console or create new version
+    # This prevents destroy/recreate which causes "pending deletion" conflicts
+  }
 }
 
 # Session Secret
@@ -35,6 +41,10 @@ resource "oci_vault_secret" "session_secret" {
     content_type = "BASE64"
     content      = base64encode(var.session_secret)
   }
+  
+  lifecycle {
+    ignore_changes = [secret_content]
+  }
 }
 
 # GitHub Access Token Secret
@@ -47,6 +57,10 @@ resource "oci_vault_secret" "github_access_token" {
   secret_content {
     content_type = "BASE64"
     content      = base64encode(var.github_access_token)
+  }
+  
+  lifecycle {
+    ignore_changes = [secret_content]
   }
 }
 

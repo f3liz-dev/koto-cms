@@ -40,6 +40,16 @@ variable "project_name" {
   default     = "koto-cms"
 }
 
+variable "function_image" {
+  description = <<EOT
+Container image URI for the function.
+First apply: leave as default (placeholder).
+After first DevOps build run: image is automatically updated by deployment pipeline.
+EOT
+  type        = string
+  default     = "phx.ocir.io/oracle/oci-cli:latest"  # Oracle official CLI image - stable placeholder
+}
+
 # Environment Variables (Simple - No Vault)
 variable "github_bot_token" {
   description = "GitHub PAT for bot"
@@ -134,17 +144,17 @@ resource "oci_functions_application" "cms" {
 resource "oci_functions_function" "cms" {
   application_id     = oci_functions_application.cms.id
   display_name       = "${var.project_name}-function"
-  image              = "${var.region}.ocir.io/${data.oci_objectstorage_namespace.ns.namespace}/${var.project_name}:latest"
+  image              = var.function_image  # Placeholder initially, updated by DevOps pipeline
   memory_in_mbs      = 512
   timeout_in_seconds = 30
 
   # Provisioned Concurrency (warm instances)
   # 2 instances × 512MB × 25% = ~324,000 GB-seconds/month
   # Free tier: 400,000 GB-seconds/month → within free tier
-  provisioned_concurrency_config {
-    strategy = "CONSTANT"
-    count    = 2  # Keep 2 instances warm (within free tier)
-  }
+  # provisioned_concurrency_config {
+  #   strategy = "CONSTANT"
+  #   count    = 2  # Keep 2 instances warm (within free tier)
+  # }
 }
 
 # API Gateway
@@ -237,11 +247,10 @@ resource "oci_devops_repository" "cms" {
   }
 }
 
-# GitHub Connection (DevOps doesn't support Vault OCIDs, must use plain value)
 resource "oci_devops_connection" "github" {
   project_id      = oci_devops_project.cms.id
   connection_type = "GITHUB_ACCESS_TOKEN"
-  access_token    = var.github_access_token
+  access_token    = oci_vault_secret.github_access_token.id
   display_name    = "GitHub Connection"
 }
 
@@ -387,12 +396,12 @@ resource "oci_devops_trigger" "main_branch" {
   }
 }
 
-# Dynamic Group for DevOps
+# Dynamic Group for DevOps (Build and Deploy Pipelines)
 resource "oci_identity_dynamic_group" "devops" {
   compartment_id = var.tenancy_ocid
   name           = "${var.project_name}-devops-dg"
-  description    = "Dynamic group for DevOps pipelines"
-  matching_rule  = "ALL {resource.type = 'devopsbuildpipeline', resource.compartment.id = '${var.compartment_id}'}"
+  description    = "Dynamic group for DevOps build and deploy pipelines"
+  matching_rule  = "ANY {resource.type = 'devopsbuildpipeline', resource.type = 'devopsdeploypipeline', resource.compartment.id = '${var.compartment_id}'}"
 }
 
 # Policy for DevOps (with OCIR push access - no auth token needed)

@@ -144,6 +144,24 @@ Apply完了後、以下の情報が表示されます：
 - `bucket_url` - フロントエンドURL
 - `api_gateway_url` - APIゲートウェイURL
 - `container_registry_url` - コンテナレジストリURL
+- `devops_project_id` - DevOps Project OCID
+
+### 6. 初回ビルドの実行（重要）
+
+初回デプロイ後、DevOps Build Pipelineを1回手動実行してください：
+
+1. **OCI Console** → **Developer Services** → **DevOps** → **Projects**
+2. 作成されたプロジェクトを選択
+3. **Build Pipelines** → `koto-cms-build` を選択
+4. **Start manual run** をクリック
+5. ビルドが完了するまで待機（約5-10分）
+
+**これ以降は完全自動です** - GitHubへのpushで自動的にビルド・デプロイされます。
+
+**なぜ初回だけ手動実行が必要？**
+- Terraform apply時はplaceholderイメージでFunctionを作成
+- DevOps Pipelineが実際のアプリケーションイメージをビルド・デプロイ
+- これはOracle公式のベストプラクティスです
 
 ## Provisioned Concurrency設定
 
