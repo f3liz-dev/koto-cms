@@ -12,16 +12,21 @@ cd "$(dirname "$0")"
 # 既存のstack.zipを削除
 rm -f stack.zip
 
-# 最適化されたschema.yamlを含むZIPを作成
-zip -r stack.zip stack.tf schema.yaml
+# Vault統合を含むZIPを作成
+zip -r stack.zip stack.tf vault.tf schema.yaml
 echo "✓ stack.zip 作成完了"
 
 echo ""
 echo "最適化された機能:"
 echo "  ✅ tenancy_ocid - UI自動入力"
 echo "  ✅ namespace - dataソース自動取得"
+echo "  ✅ OCI Vault統合 - セキュアなシークレット管理"
 echo "  ✅ 日本語UI対応"
 echo "  ✅ バリデーション付き"
+echo ""
+echo "⚠️  事前準備:"
+echo "   - OCI Vaultを作成してください"
+echo "   - Vault内にマスター暗号化キーを作成してください"
 echo ""
 echo "2. 次のステップ:"
 echo "   1. OCI Console → Resource Manager → Stacks"

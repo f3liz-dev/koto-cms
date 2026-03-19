@@ -7,6 +7,7 @@
  * Ref: https://misskey-hub.net/en/docs/for-developers/api/token/miauth/
  */
 
+import { getSecrets } from "./server.ts";
 import { validateHandle } from "./webfinger.ts";
 import { validateAllowlist } from "./allowlist.ts";
 
@@ -104,7 +105,7 @@ export async function handleMiAuthCallback(
       }
     } catch { /* non-fatal — fall back to basic name */ }
 
-    const githubToken = Deno.env.get("GITHUB_BOT_TOKEN");
+    const githubToken = getSecrets().githubBotToken;
     if (!githubToken) return { ok: false, error: "Bot GitHub token not configured" };
 
     return {

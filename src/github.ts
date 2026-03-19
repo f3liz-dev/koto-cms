@@ -10,6 +10,8 @@
  *   4. markPrReady()          — convert draft → ready for review
  */
 
+import { getSecrets } from "./server.ts";
+
 export interface FileEntry {
   path: string;
   name: string;
@@ -38,10 +40,10 @@ export interface PrResult {
 // ── Config ─────────────────────────────────────────────────────────────────────
 
 function cfg() {
-  const token  = Deno.env.get("GITHUB_BOT_TOKEN");
+  const token  = getSecrets().githubBotToken;
   const repo   = Deno.env.get("GITHUB_REPO");
   const branch = Deno.env.get("GITHUB_BRANCH") ?? "main";
-  if (!token) throw new Error("GITHUB_BOT_TOKEN is not set");
+  if (!token) throw new Error("GitHub bot token not available");
   if (!repo)  throw new Error("GITHUB_REPO is not set (owner/repo)");
   return { token, repo, branch };
 }

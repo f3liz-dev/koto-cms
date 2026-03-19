@@ -12,6 +12,11 @@ variableGroups:
       - tenancy_ocid
       - subnet_id
 
+  - title: "Vault設定"
+    variables:
+      - vault_id
+      - vault_key_id
+
   - title: "GitHub設定"
     variables:
       - github_repo
@@ -54,6 +59,22 @@ variables:
     type: oci:core:subnet:id
     title: "サブネット"
     description: "Functions用のサブネット"
+    required: true
+    dependsOn:
+      compartmentId: ${compartment_id}
+
+  vault_id:
+    type: oci:kms:vault:id
+    title: "Vault OCID"
+    description: "シークレット管理用のOCI Vault"
+    required: true
+    dependsOn:
+      compartmentId: ${compartment_id}
+
+  vault_key_id:
+    type: oci:kms:key:id
+    title: "Vault暗号化キーOCID"
+    description: "Vaultのマスター暗号化キー"
     required: true
     dependsOn:
       compartmentId: ${compartment_id}

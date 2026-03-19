@@ -2,6 +2,7 @@
  * server.ts — CMS HTTP handler (Deno / OCI Functions)
  */
 
+import { initSecrets, type Secrets } from "./secrets.ts";
 import { validateHandle } from "./webfinger.ts";
 import { validateAllowlist } from "./allowlist.ts";
 import { initiateMiAuthFlow, handleMiAuthCallback as performMiAuthCallback } from "./miauth.ts";
@@ -12,6 +13,28 @@ import {
   listFiles, getFile, commitFile, deleteFileOnBranch,
   createWorkingBranch, ensureDraftPr, listUserPrs, markPrReady, commitMessage,
 } from "./github.ts";
+
+// ── Secrets ────────────────────────────────────────────────────────────────────
+
+// Global secrets cache - initialized at cold start
+let secrets: Secrets | null = null;
+
+/**
+ * Get secret values - either from Vault cache or environment variables
+ */
+function getSecrets(): Secrets {
+  if (secrets) return secrets;
+  
+  // Fallback to env vars for local development
+  return {
+    githubBotToken: Deno.env.get("GITHUB_BOT_TOKEN")!,
+    sessionSecret: Deno.env.get("SESSION_SECRET")!,
+    githubAccessToken: Deno.env.get("GITHUB_ACCESS_TOKEN") ?? Deno.env.get("GITHUB_BOT_TOKEN")!,
+  };
+}
+
+// Export for use in other modules
+export { getSecrets };
 
 // ── Logger ─────────────────────────────────────────────────────────────────────
 
@@ -61,7 +84,23 @@ function json(body: unknown, status = 200, extra: Record<string, string> = {}): 
 }
 
 function validateEnv(): string[] {
-  return ["GITHUB_BOT_TOKEN", "GITHUB_REPO", "SESSION_SECRET"].filter(k => !Deno.env.get(k));
+  // Check for Vault OCIDs (production) or plain env vars (local dev)
+  const vaultMode = !!Deno.env.get("GITHUB_BOT_TOKEN_SECRET_OCID");
+  
+  if (vaultMode) {
+    return [
+      "GITHUB_BOT_TOKEN_SECRET_OCID",
+      "SESSION_SECRET_OCID",
+      "GITHUB_ACCESS_TOKEN_SECRET_OCID",
+      "GITHUB_REPO"
+    ].filter(k => !Deno.env.get(k));
+  } else {
+    return [
+      "GITHUB_BOT_TOKEN",
+      "GITHUB_REPO",
+      "SESSION_SECRET"
+    ].filter(k => !Deno.env.get(k));
+  }
 }
 
 // ── Frontend URL (Object Storage / CDN) ───────────────────────────────────────
@@ -272,6 +311,26 @@ export async function handleRequest(req: Request): Promise<Response> {
 if (import.meta.main) {
   const missing = validateEnv();
   if (missing.length) { log("error", "Missing required env vars", { missing }); Deno.exit(1); }
+
+  // Initialize secrets from Vault (if in OCI Functions) or use env vars (local dev)
+  const vaultMode = !!Deno.env.get("GITHUB_BOT_TOKEN_SECRET_OCID");
+  if (vaultMode) {
+    log("info", "Initializing secrets from OCI Vault...");
+    try {
+      secrets = await initSecrets();
+      log("info", "Secrets loaded successfully from Vault");
+    } catch (err) {
+      log("error", "Failed to load secrets from Vault", { err: String(err) });
+      Deno.exit(1);
+    }
+  } else {
+    log("info", "Using environment variables (local dev mode)");
+    secrets = {
+      githubBotToken: Deno.env.get("GITHUB_BOT_TOKEN")!,
+      sessionSecret: Deno.env.get("SESSION_SECRET")!,
+      githubAccessToken: Deno.env.get("GITHUB_ACCESS_TOKEN") ?? Deno.env.get("GITHUB_BOT_TOKEN")!,
+    };
+  }
 
   Deno.serve({
     port: parseInt(Deno.env.get("CMS_PORT") ?? "8080"),

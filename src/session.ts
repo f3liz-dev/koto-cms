@@ -5,14 +5,16 @@
  * No in-memory store; all state lives in a signed HttpOnly cookie.
  *
  * Token format:  base64url(header).base64url(payload).base64url(HMAC-SHA256)
- * Secret:        SESSION_SECRET env var (required, ≥32 chars recommended)
+ * Secret:        From OCI Vault (production) or SESSION_SECRET env var (local dev)
  * TTL:           8 hours (configurable via SESSION_TTL_HOURS)
  *
  * Trade-off vs stateful sessions:
  *   + No shared store needed across OCI Function instances
  *   - Cannot forcibly invalidate individual tokens before expiry
- *     (rotate SESSION_SECRET to invalidate all sessions at once)
+ *     (rotate secret in Vault to invalidate all sessions at once)
  */
+
+import { getSecrets } from "./server.ts";
 
 export interface Session {
   id: string;
@@ -52,8 +54,8 @@ function decodeJson<T>(s: string): T {
 }
 
 async function getKey(): Promise<CryptoKey> {
-  const secret = Deno.env.get("SESSION_SECRET");
-  if (!secret) throw new Error("SESSION_SECRET env var is required");
+  const secret = getSecrets().sessionSecret;
+  if (!secret) throw new Error("Session secret not available");
   return crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),

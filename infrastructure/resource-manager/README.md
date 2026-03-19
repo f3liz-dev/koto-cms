@@ -5,7 +5,7 @@ OCI Resource Managerを使用した完全マネージド型デプロイメント
 ## 特徴
 
 - ✅ **OCI ネイティブ** - Terraformローカル実行不要
-- ✅ **シンプルな秘密情報管理** - 環境変数のみ（Vault不要）
+- ✅ **セキュアなシークレット管理** - OCI Vault統合
 - ✅ **Provisioned Concurrency** - コールドスタート対策（無料枠内）
 - ✅ **Denoコンパイル済みバイナリ** - 軽量コンテナ
 - ✅ **ワンクリックデプロイ** - OCI Consoleから実行
@@ -63,6 +63,19 @@ OCI Resource Managerを使用した完全マネージド型デプロイメント
 
 ## デプロイ手順
 
+### 0. 事前準備: OCI Vaultの作成
+
+デプロイ前に、OCI Vaultとマスター暗号化キーを作成してください：
+
+1. **OCI Console** → **Identity & Security** → **Vault**
+2. **Create Vault** をクリック
+   - Name: `koto-vault`
+   - Compartment: デプロイ先と同じコンパートメント
+3. Vault作成後、**Master Encryption Keys** → **Create Key**
+   - Name: `koto-master-key`
+   - Protection Mode: `HSM` または `Software`
+4. Vault OCIDとKey OCIDをメモ（後で使用）
+
 ### 1. スタックZIPの作成
 
 ```bash
@@ -83,14 +96,12 @@ cd infrastructure/resource-manager
 
 **手動入力が必要な変数:**
 - リージョン、コンパートメント、サブネット（ドロップダウン選択）
+- Vault OCID、Vault Key OCID（事前準備で作成したもの）
 - GitHub tokens、session_secret、document_editors（テキスト入力）
 
-### 3. Plan & Apply
+### 3. 変数の入力
 
-1. **Resource Manager** → **Stacks** → **Create Stack**
-2. **My Configuration** を選択
-3. `stack.zip` をアップロード
-4. 次の変数を入力：
+次の変数を入力：
 
 | 変数名 | 説明 | 入力方法 |
 |--------|------|---------|
@@ -98,10 +109,11 @@ cd infrastructure/resource-manager
 | `compartment_id` | コンパートメントOCID | ドロップダウン選択 |
 | `tenancy_ocid` | テナンシーOCID | **UI自動入力** |
 | `subnet_id` | サブネットOCID | ドロップダウン選択 |
+| `vault_id` | Vault OCID | ドロップダウン選択 |
+| `vault_key_id` | Vault暗号化キーOCID | ドロップダウン選択 |
 | `github_repo` | DevOps用GitHubリポジトリ | 手動入力（例: `owner/repo`） |
 | `content_repo` | コンテンツ管理用GitHubリポジトリ | 手動入力（例: `owner/content`） |
 | `github_bot_token` | GitHub PAT | 手動入力 |
-| `github_repo` | GitHubリポジトリ | 手動入力（例: `owner/repo`） |
 | `session_secret` | セッション署名秘密鍵 | 手動入力（32文字以上） |
 | `document_editors` | 許可するFediverseハンドル | 手動入力（例: `@user@instance`） |
 | `miauth_callback_url` | MiAuthコールバックURL | 手動入力 |
@@ -110,20 +122,22 @@ cd infrastructure/resource-manager
 **注意:** 
 - `tenancy_ocid` はUI自動入力
 - `namespace` はTerraformのdataソースで自動取得（変数不要）
+- シークレット（tokens、secrets）はVaultに暗号化保存されます
 - OCIRへのプッシュに認証トークンは不要（IAM Dynamic Group使用）
 
-### 3. Plan & Apply
+### 4. Plan & Apply
 
 1. **Plan** をクリックして変更内容を確認
 2. **Apply** をクリックしてデプロイ実行
 3. 完了まで約5-10分
 
 **自動作成されるもの:**
-- ✅ Dynamic Group (DevOpsビルドパイプライン用)
-- ✅ IAM Policy (OCIR push権限含む)
+- ✅ Vault Secrets (GitHub tokens、session secret)
+- ✅ Dynamic Groups (DevOps、Functions用)
+- ✅ IAM Policies (OCIR push、Vault読み取り権限含む)
 - ✅ 認証トークン不要の設定
 
-### 4. 出力値の確認
+### 5. 出力値の確認
 
 Apply完了後、以下の情報が表示されます：
 
@@ -153,36 +167,35 @@ provisioned_concurrency_config {
 - `count = 2` - 2インスタンス常時起動（推奨）
 - `count = 10` - 10インスタンス常時起動（無料枠上限）
 
-## 環境変数管理
+## シークレット管理
 
-### シンプルな方式（現在の設定）
+### OCI Vault統合（現在の設定）
 
-環境変数として直接設定（OCI Vault不要）
+すべての機密情報はOCI Vaultに暗号化保存されます。
+
+**保護されるシークレット:**
+- `github_bot_token` - GitHub API用PAT
+- `session_secret` - セッション署名秘密鍵
+- `github_access_token` - リポジトリミラーリング用PAT
 
 **メリット:**
-- 設定が簡単
-- 追加コストなし
-- Resource Managerで一元管理
+- ✅ 暗号化保存（HSMまたはソフトウェア）
+- ✅ アクセス制御（IAM Policy）
+- ✅ 監査ログ
+- ✅ 自動ローテーション対応
 
-**デメリット:**
-- Terraform Stateに平文保存
-- ローテーションは手動
+**コスト:**
+- Vault: 無料（Always Free）
+- Master Key: 無料（Always Free）
+- Secret: $0.03/月/シークレット
 
-### セキュアな方式（オプション）
+### シークレットのローテーション
 
-OCI Vaultを使用する場合は、`stack.tf` を以下のように変更：
-
-```hcl
-# Vault Secret参照
-data "oci_vault_secret" "session_secret" {
-  secret_id = var.session_secret_ocid
-}
-
-# Function設定
-config = {
-  SESSION_SECRET = data.oci_vault_secret.session_secret.secret_bundle_content[0].content
-}
-```
+1. **OCI Console** → **Vault** → **Secrets**
+2. 対象のシークレットを選択
+3. **Create New Version** をクリック
+4. 新しい値を入力
+5. Functionsが自動的に新しいバージョンを使用
 
 ## 更新手順
 

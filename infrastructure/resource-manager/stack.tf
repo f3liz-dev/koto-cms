@@ -116,16 +116,17 @@ resource "oci_functions_application" "cms" {
   display_name   = "${var.project_name}-app"
   subnet_ids     = [var.subnet_id]
 
-  # Simple environment variables (no Vault)
+  # Environment variables - OCIDs only (secrets fetched at runtime)
   config = {
-    GITHUB_BOT_TOKEN    = var.github_bot_token
-    GITHUB_REPO         = var.content_repo  # Content repository
-    GITHUB_BRANCH       = var.github_branch
-    SESSION_SECRET      = var.session_secret
-    DOCUMENT_EDITORS    = var.document_editors
-    MIAUTH_CALLBACK_URL = var.miauth_callback_url
-    APP_NAME            = var.app_name
-    FRONTEND_URL        = "https://objectstorage.${var.region}.oraclecloud.com/n/${data.oci_objectstorage_namespace.ns.namespace}/b/${oci_objectstorage_bucket.frontend.name}/o"
+    GITHUB_BOT_TOKEN_SECRET_OCID    = oci_vault_secret.github_bot_token.id
+    SESSION_SECRET_OCID             = oci_vault_secret.session_secret.id
+    GITHUB_ACCESS_TOKEN_SECRET_OCID = oci_vault_secret.github_access_token.id
+    GITHUB_REPO                     = var.content_repo  # Content repository
+    GITHUB_BRANCH                   = var.github_branch
+    DOCUMENT_EDITORS                = var.document_editors
+    MIAUTH_CALLBACK_URL             = var.miauth_callback_url
+    APP_NAME                        = var.app_name
+    FRONTEND_URL                    = "https://objectstorage.${var.region}.oraclecloud.com/n/${data.oci_objectstorage_namespace.ns.namespace}/b/${oci_objectstorage_bucket.frontend.name}/o"
   }
 }
 
@@ -236,7 +237,7 @@ resource "oci_devops_repository" "cms" {
   }
 }
 
-# GitHub Connection
+# GitHub Connection (DevOps doesn't support Vault OCIDs, must use plain value)
 resource "oci_devops_connection" "github" {
   project_id      = oci_devops_project.cms.id
   connection_type = "GITHUB_ACCESS_TOKEN"
