@@ -69,8 +69,9 @@ variable "app_name" {
 }
 
 variable "function_image" {
-  description = "Docker image for function"
+  description = "Docker image for function. Defaults to <region>.ocir.io/<namespace>/<project_name>:latest"
   type        = string
+  default     = ""
 }
 
 variable "github_access_token" {

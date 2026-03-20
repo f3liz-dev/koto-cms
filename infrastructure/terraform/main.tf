@@ -8,6 +8,10 @@ terraform {
   }
 }
 
+locals {
+  function_image = var.function_image != "" ? var.function_image : "${var.region}.ocir.io/${var.namespace}/${var.project_name}:latest"
+}
+
 provider "oci" {
   region = var.region
 }
@@ -106,7 +110,7 @@ resource "oci_apigateway_deployment" "cms" {
 resource "oci_functions_function" "cms" {
   application_id = oci_functions_application.cms.id
   display_name   = "${var.project_name}-function"
-  image          = var.function_image
+  image          = local.function_image
   memory_in_mbs  = 512
   timeout_in_seconds = 30
 }

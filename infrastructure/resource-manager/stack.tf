@@ -41,13 +41,9 @@ variable "project_name" {
 }
 
 variable "function_image" {
-  description = <<EOT
-Container image URI for the function.
-First apply: leave as default (placeholder).
-After first DevOps build run: image is automatically updated by deployment pipeline.
-EOT
+  description = "Docker image override. Defaults to <region>.ocir.io/<namespace>/<project_name>:latest"
   type        = string
-  default     = "phx.ocir.io/oracle/oci-cli:latest"  # Oracle official CLI image - stable placeholder
+  default     = ""
 }
 
 # Environment Variables (Simple - No Vault)
@@ -111,6 +107,10 @@ data "oci_objectstorage_namespace" "ns" {
   compartment_id = var.compartment_id
 }
 
+locals {
+  function_image = var.function_image != "" ? var.function_image : "${var.region}.ocir.io/${data.oci_objectstorage_namespace.ns.namespace}/${var.project_name}:latest"
+}
+
 # Object Storage Bucket for Frontend
 resource "oci_objectstorage_bucket" "frontend" {
   compartment_id = var.compartment_id
@@ -144,7 +144,7 @@ resource "oci_functions_application" "cms" {
 resource "oci_functions_function" "cms" {
   application_id     = oci_functions_application.cms.id
   display_name       = "${var.project_name}-function"
-  image              = var.function_image  # Placeholder initially, updated by DevOps pipeline
+  image              = local.function_image  # Defaults to <region>.ocir.io/<namespace>/<project_name>:latest
   memory_in_mbs      = 512
   timeout_in_seconds = 30
 
