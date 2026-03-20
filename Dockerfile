@@ -2,7 +2,7 @@ FROM denoland/deno:2.3.3 AS build
 WORKDIR /function
 COPY src ./src
 RUN for i in 1 2 3; do \
-      deno compile --allow-net --allow-env --output fn-server src/func.ts && break; \
+      deno compile --allow-net --allow-env --allow-read --allow-write --output fn-server src/func.ts && break; \
       echo "Retry $i failed, retrying..."; \
       [ $i -eq 3 ] && exit 1; \
       sleep 5; \
