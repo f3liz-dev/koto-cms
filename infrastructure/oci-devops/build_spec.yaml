@@ -26,6 +26,10 @@ steps:
   - type: Command
     name: "Upload Frontend to Object Storage"
     command: |
+      if [ -z "${OCI_BUCKET_NAME}" ]; then
+        echo "ERROR: OCI_BUCKET_NAME must be defined as a build pipeline parameter"
+        exit 1
+      fi
       oci os object bulk-upload \
         --bucket-name ${OCI_BUCKET_NAME} \
         --src-dir public/ \
@@ -36,6 +40,11 @@ steps:
   - type: Command
     name: "Set Docker Image Tag"
     command: |
+      # OCI_REGION and OCI_NAMESPACE must be set as build pipeline parameters
+      if [ -z "${OCI_REGION}" ] || [ -z "${OCI_NAMESPACE}" ]; then
+        echo "ERROR: OCI_REGION and OCI_NAMESPACE must be defined as build pipeline parameters"
+        exit 1
+      fi
       export DOCKER_REGISTRY="${OCI_REGION}.ocir.io"
       export DOCKER_REPO="${OCI_NAMESPACE}/koto-cms"
       export DOCKER_IMAGE_TAG=$(echo "${OCI_BUILD_RUN_ID:-latest}" | awk -F. '{print tolower($NF)}')

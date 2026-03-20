@@ -91,6 +91,15 @@ resource "oci_apigateway_deployment" "cms" {
         function_id = oci_functions_function.cms.id
       }
     }
+
+    routes {
+      path    = "/{path*}"
+      methods = ["GET"]
+      backend {
+        type        = "ORACLE_FUNCTIONS_BACKEND"
+        function_id = oci_functions_function.cms.id
+      }
+    }
   }
 }
 

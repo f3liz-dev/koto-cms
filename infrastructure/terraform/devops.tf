@@ -45,6 +45,29 @@ resource "oci_devops_build_pipeline" "cms" {
   project_id   = oci_devops_project.cms.id
   display_name = "${var.project_name}-build"
   description  = "Build and push CMS container image"
+
+  build_pipeline_parameters {
+    items {
+      name          = "OCI_REGION"
+      default_value = var.region
+      description   = "OCI region"
+    }
+    items {
+      name          = "OCI_NAMESPACE"
+      default_value = var.namespace
+      description   = "Object Storage namespace"
+    }
+    items {
+      name          = "OCI_BUCKET_NAME"
+      default_value = oci_objectstorage_bucket.frontend.name
+      description   = "Frontend Object Storage bucket"
+    }
+    items {
+      name          = "OCI_COMPARTMENT_ID"
+      default_value = var.compartment_id
+      description   = "OCI compartment OCID"
+    }
+  }
 }
 
 # Build Stage
