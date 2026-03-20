@@ -38,7 +38,7 @@ steps:
   - type: Command
     name: "Set Docker Image Tag"
     command: |
-      export DOCKER_IMAGE_TAG="${OCI_BUILD_RUN_ID:-latest}"
+      export DOCKER_IMAGE_TAG=$(echo "${OCI_BUILD_RUN_ID:-latest}" | awk -F. '{print tolower($NF)}')
       echo "Image tag: ${DOCKER_IMAGE_TAG}"
 
   - type: Command
