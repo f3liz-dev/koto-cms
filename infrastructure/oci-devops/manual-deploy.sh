@@ -28,12 +28,26 @@ echo "✓ Frontend built"
 # Step 2: Upload to Object Storage
 echo "Step 2/5: Uploading frontend to Object Storage..."
 BUCKET_NAME="${PROJECT_NAME}-frontend"
-oci os object bulk-upload \
-  --bucket-name "$BUCKET_NAME" \
-  --src-dir public/ \
-  --overwrite \
-  --content-type-detection \
-  --region "$REGION"
+find public/ -type f | while read -r f; do
+  case "${f##*.}" in
+    html)     mime="text/html" ;;
+    css)      mime="text/css" ;;
+    js)       mime="application/javascript" ;;
+    json)     mime="application/json" ;;
+    png)      mime="image/png" ;;
+    jpg|jpeg) mime="image/jpeg" ;;
+    svg)      mime="image/svg+xml" ;;
+    woff2)    mime="font/woff2" ;;
+    *)        mime="application/octet-stream" ;;
+  esac
+  oci os object put \
+    --bucket-name "$BUCKET_NAME" \
+    --file "$f" \
+    --name "${f#public/}" \
+    --content-type "$mime" \
+    --region "$REGION" \
+    --force
+done
 echo "✓ Frontend uploaded"
 
 # Step 3: Build Docker Image

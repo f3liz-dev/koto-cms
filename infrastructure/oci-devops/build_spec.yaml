@@ -30,11 +30,26 @@ steps:
         echo "ERROR: OCI_BUCKET_NAME must be defined as a build pipeline parameter"
         exit 1
       fi
-      oci os object bulk-upload \
-        --bucket-name ${OCI_BUCKET_NAME} \
-        --src-dir public/ \
-        --overwrite \
-        --auth resource_principal
+      find public/ -type f | while read -r f; do
+        case "${f##*.}" in
+          html)     mime="text/html" ;;
+          css)      mime="text/css" ;;
+          js)       mime="application/javascript" ;;
+          json)     mime="application/json" ;;
+          png)      mime="image/png" ;;
+          jpg|jpeg) mime="image/jpeg" ;;
+          svg)      mime="image/svg+xml" ;;
+          woff2)    mime="font/woff2" ;;
+          *)        mime="application/octet-stream" ;;
+        esac
+        oci os object put \
+          --bucket-name "${OCI_BUCKET_NAME}" \
+          --file "$f" \
+          --name "${f#public/}" \
+          --content-type "$mime" \
+          --auth resource_principal \
+          --force
+      done
       echo "✓ Frontend uploaded to Object Storage"
 
   - type: Command

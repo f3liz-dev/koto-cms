@@ -1,7 +1,12 @@
 FROM denoland/deno:2.3.3 AS build
 WORKDIR /function
 COPY src ./src
-RUN deno compile --allow-net --allow-env --output fn-server src/func.ts
+RUN for i in 1 2 3; do \
+      deno compile --allow-net --allow-env --output fn-server src/func.ts && break; \
+      echo "Retry $i failed, retrying..."; \
+      [ $i -eq 3 ] && exit 1; \
+      sleep 5; \
+    done
 
 # Use a lightweight, standard OCI-friendly base image
 FROM oraclelinux:9-slim
