@@ -14,8 +14,8 @@ steps:
   - type: Command
     name: "Install Node.js"
     command: |
-      curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-      apt-get install -y nodejs
+      curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
+      yum install -y nodejs
 
   - type: Command
     name: "Build Frontend"
