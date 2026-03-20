@@ -150,4 +150,4 @@ variables:
     type: string
     title: "Function イメージURI（初回はデフォルトのまま）"
     description: "初回デプロイ後、DevOps Pipelineが自動的に実際のイメージに更新します"
-    default: "phx.ocir.io/oracle/oci-cli:latest"
+    default: ""
