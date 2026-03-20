@@ -4,11 +4,10 @@ timeoutInSeconds: 1200
 shell: bash
 
 env:
-  variables:
-    DOCKER_REGISTRY: "${OCI_REGION}.ocir.io"
-    DOCKER_REPO: "${OCI_NAMESPACE}/koto-cms"
   exportedVariables:
     - DOCKER_IMAGE_TAG
+    - DOCKER_REGISTRY
+    - DOCKER_REPO
 
 steps:
   - type: Command
@@ -31,13 +30,14 @@ steps:
         --bucket-name ${OCI_BUCKET_NAME} \
         --src-dir public/ \
         --overwrite \
-        --content-type-detection \
         --auth resource_principal
       echo "✓ Frontend uploaded to Object Storage"
 
   - type: Command
     name: "Set Docker Image Tag"
     command: |
+      export DOCKER_REGISTRY="${OCI_REGION}.ocir.io"
+      export DOCKER_REPO="${OCI_NAMESPACE}/koto-cms"
       export DOCKER_IMAGE_TAG=$(echo "${OCI_BUILD_RUN_ID:-latest}" | awk -F. '{print tolower($NF)}')
       echo "Image tag: ${DOCKER_IMAGE_TAG}"
 
