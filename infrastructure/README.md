@@ -1,282 +1,48 @@
-# Infrastructure Setup
+# Infrastructure
 
-This directory contains infrastructure-as-code and deployment scripts for Koto.
+Infrastructure-as-code for deploying Koto CMS to OCI Container Instances (ARM64).
 
-## Architecture
-
-```
-┌─────────────┐
-│   Browser   │
-└──────┬──────┘
-       │
-       ├─── Static Assets ────────┐
-       │                          │
-       │                     ┌────▼────────────┐
-       │                     │  OCI Object     │
-       │                     │  Storage        │
-       │                     │  (Frontend)     │
-       │                     └─────────────────┘
-       │
-       └─── API Requests ─────────┐
-                                  │
-                             ┌────▼────────────┐
-                             │  OCI API        │
-                             │  Gateway        │
-                             └────┬────────────┘
-                                  │
-                             ┌────▼────────────┐
-                             │  OCI Functions  │
-                             │  (Backend)      │
-                             └────┬────────────┘
-                                  │
-                             ┌────▼────────────┐
-                             │  GitHub API     │
-                             └─────────────────┘
-```
-
-## Directory Structure
-
-```
-infrastructure/
-├── resource-manager/   # OCI Resource Manager (推奨)
-│   ├── stack.tf       # 完全なインフラ定義
-│   ├── schema.yaml    # UI用変数定義
-│   ├── README.md      # 詳細ガイド
-│   └── create-stack.sh # Stack作成スクリプト
-├── terraform/          # 従来のTerraform（ローカル実行）
-│   ├── main.tf        # Core infrastructure
-│   ├── devops.tf      # DevOps pipelines
-│   ├── variables.tf   # Input variables
-│   └── outputs.tf     # Output values
-├── oci-devops/        # CI/CD pipeline definitions
-│   ├── build_spec.yaml    # Build pipeline steps
-│   ├── deploy_spec.yaml   # Deployment pipeline steps
-│   ├── README.md          # Detailed setup guide
-│   └── manual-deploy.sh   # Manual deployment script
-└── scripts/           # Helper scripts
-    ├── upload-frontend.sh   # Bash script
-    ├── upload-frontend.js   # Node.js script
-    └── deploy.ps1           # PowerShell script
-```
-
-## Deployment
-
-### OCI Resource Manager (Recommended)
-
-**Fully managed - simplest approach**
+## Quick Start
 
 ```bash
-cd infrastructure/resource-manager
-./create-stack.sh
-# Upload stack.zip to OCI Console
+cd infrastructure
+
+# 1. Create terraform.tfvars with your configuration
+# 2. Deploy infrastructure
+terraform init
+terraform apply
+
+# 3. Deploy application (see MANUAL_DEPLOY.md for details)
 ```
 
-**Features:**
-- ✅ No Terraform CLI needed
-- ✅ OCI Console workflow
-- ✅ Automatic state management
-- ✅ Provisioned Concurrency (2 warm instances)
-- ✅ Environment variables only (no Vault)
-- ✅ IAM-based auth (no tokens)
+## Files
 
-Details: [resource-manager/README.md](./resource-manager/README.md)
+- `stack.tf` - Terraform configuration for OCI resources
+- `MANUAL_DEPLOY.md` - Step-by-step deployment instructions
+- `ARCHITECTURE.md` - System architecture documentation
 
-### Terraform CLI (Alternative)
+## What Gets Deployed
 
-**Linux/Mac:**
-```bash
-npm run build
-./scripts/upload-frontend.sh <bucket-name> <region>
+- Container Instance (ARM64, 1 CPU, 2GB RAM) - FREE
+- Object Storage bucket (frontend assets) - ~$0.03/month
+- OCI Vault (secrets) - FREE
+- IAM policies - FREE
+
+Total cost: ~$0.03/month
+
+## Configuration
+
+Create `terraform.tfvars`:
+
+```hcl
+region              = "us-ashburn-1"
+compartment_id      = "ocid1.compartment.oc1..xxxxx"
+tenancy_ocid        = "ocid1.tenancy.oc1..xxxxx"
+subnet_id           = "ocid1.subnet.oc1..xxxxx"
+content_repo        = "owner/content-repo"
+github_bot_token    = "ghp_xxxxx"
+session_secret      = "generate-with-openssl-rand-base64-32"
+document_editors    = "@user@instance.social"
 ```
 
-**Windows:**
-```powershell
-npm run build
-.\scripts\deploy.ps1 -BucketName <bucket-name> -Region <region>
-```
-
-## Environment Variables
-
-### Required for Backend
-
-| Variable | Description |
-|----------|-------------|
-| `GITHUB_BOT_TOKEN` | GitHub PAT with repo access |
-| `GITHUB_REPO` | Repository in format `owner/repo` |
-| `SESSION_SECRET` | 32+ character random string |
-| `DOCUMENT_EDITORS` | Comma-separated Fediverse handles |
-| `MIAUTH_CALLBACK_URL` | Public callback URL |
-| `FRONTEND_URL` | Object Storage bucket URL |
-
-### Optional
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `GITHUB_BRANCH` | `main` | Base branch |
-| `SESSION_TTL_HOURS` | `8` | Session lifetime |
-| `APP_NAME` | `Koto` | Display name |
-| `CMS_PORT` | `3000` | Server port |
-
-## Technology Stack
-
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Frontend | Vite + Preact | Static SPA |
-| Backend | Deno + TypeScript | Serverless API |
-| Storage | OCI Object Storage | Frontend assets |
-| Compute | OCI Functions | Backend runtime |
-| Gateway | OCI API Gateway | HTTP routing |
-| Registry | OCI Container Registry | Docker images |
-| IaC | Terraform | Infrastructure provisioning |
-| CI/CD | OCI DevOps | Build and deployment pipelines |
-
-## Cost Optimization
-
-**Estimated Monthly Cost (Low Traffic):**
-
-| Service | Usage | Cost |
-|---------|-------|------|
-| Object Storage | 1 GB + 10K requests | ~$0.03 |
-| Functions | 100K invocations, 512MB, 1s avg | ~$2.00 |
-| API Gateway | 100K requests | ~$0.35 |
-| DevOps | 100 build minutes | ~$1.00 |
-| **Total** | | **~$3-5/month** |
-
-**Tips:**
-- Functions auto-scale to zero (no idle cost)
-- Object Storage is dirt cheap for static assets
-- API Gateway caches responses (reduces function calls)
-- DevOps only charges for build time
-
-## Security Best Practices
-
-1. **Secrets Management**
-   - Use OCI Vault for sensitive values (SESSION_SECRET, tokens)
-   - Never commit secrets to git
-   - Rotate credentials regularly
-
-2. **Network Security**
-   - Functions in private subnet
-   - API Gateway in public subnet (SSL termination)
-   - Object Storage bucket: public read only
-
-3. **Authentication**
-   - MiAuth for user authentication
-   - Resource principal for service-to-service
-   - Rate limiting in application code
-
-4. **CORS Configuration**
-   - Configure API Gateway CORS policies
-   - Restrict origins in production
-
-5. **Audit Logging**
-   - Enable OCI Audit for all API calls
-   - Monitor DevOps pipeline logs
-   - Track function invocations
-
-## Monitoring & Observability
-
-### Function Logs
-```bash
-# Via OCI CLI
-fn logs get <app-name> <function-name>
-
-# Via OCI Console
-Functions → Applications → koto-cms-app → Logs
-```
-
-### DevOps Logs
-```bash
-# Build logs
-oci devops build-run get --build-run-id <build-run-ocid>
-
-# Deployment logs
-oci devops deployment get --deployment-id <deployment-ocid>
-```
-
-### Metrics
-```bash
-# Function metrics (invocations, duration, errors)
-oci monitoring metric-data summarize-metrics-data \
-  --namespace oci_faas \
-  --query-text "FunctionInvocationCount[1m].sum()"
-```
-
-## Troubleshooting
-
-### Frontend not loading
-```bash
-# Check bucket is public
-oci os bucket get --bucket-name koto-cms-frontend
-
-# Test direct access
-curl https://objectstorage.us-ashburn-1.oraclecloud.com/n/namespace/b/koto-cms-frontend/o/index.html
-
-# Verify FRONTEND_URL in function config
-oci fn application get --application-id <app-ocid>
-```
-
-### Backend errors
-```bash
-# Check function logs
-fn logs get koto-cms-app koto-cms-function
-
-# Test health endpoint
-curl https://your-gateway-url/health
-
-# Verify environment variables
-oci fn application get --application-id <app-ocid> | jq '.data.config'
-```
-
-### Build pipeline fails
-```bash
-# Check build logs
-oci devops build-run get --build-run-id <build-run-ocid>
-
-# Verify IAM policies
-oci iam policy get --policy-id <policy-ocid>
-
-# Check dynamic group membership
-oci iam dynamic-group get --dynamic-group-id <dg-ocid>
-```
-
-### Deployment fails
-```bash
-# Check deployment logs
-oci devops deployment get --deployment-id <deployment-ocid>
-
-# Verify function exists
-oci fn function get --function-id <function-ocid>
-
-# Check image in OCIR
-oci artifacts container image list --compartment-id <compartment-ocid>
-```
-
-### Authentication issues
-```bash
-# Test MiAuth callback URL
-curl https://your-gateway-url/miauth/callback?session=test
-
-# Verify SESSION_SECRET is set
-oci fn application get --application-id <app-ocid> | jq '.data.config.SESSION_SECRET'
-
-# Check allowlist
-echo $DOCUMENT_EDITORS
-```
-
-## Common Issues
-
-**Issue:** "Permission denied" in build pipeline  
-**Solution:** Check DevOps dynamic group policies
-
-**Issue:** Frontend shows 404  
-**Solution:** Verify FRONTEND_URL points to correct bucket
-
-**Issue:** Function timeout  
-**Solution:** Increase timeout in Terraform (default 30s)
-
-**Issue:** CORS errors  
-**Solution:** Configure API Gateway CORS policies
-
-**Issue:** Image push fails  
-**Solution:** Verify OCI auth token in build parameters
+See `MANUAL_DEPLOY.md` for complete deployment instructions.

@@ -1,22 +1,46 @@
-FROM denoland/deno:2.3.3 AS build
-WORKDIR /function
-COPY src ./src
-RUN for i in 1 2 3; do \
-      deno compile --allow-net --allow-env --allow-read --allow-write --output fn-server src/func.ts && break; \
-      echo "Retry $i failed, retrying..."; \
-      [ $i -eq 3 ] && exit 1; \
-      sleep 5; \
-    done
+# Dockerfile for Koto CMS (x86_64)
+# For ARM64 deployment, use Dockerfile.arm64
 
-# Use a lightweight, standard OCI-friendly base image
-FROM oraclelinux:9-slim
+FROM hexpm/elixir:1.17.3-erlang-27.1.2-alpine-3.20.3 AS build
 
-RUN groupadd --gid 1000 fn && \
-    useradd --uid 1000 --gid 1000 fn
+RUN apk add --no-cache build-base git
 
-WORKDIR /function
-COPY --chown=fn:fn --from=build /function/fn-server .
+WORKDIR /app
 
-USER fn
+RUN mix local.hex --force && \
+    mix local.rebar --force
 
-ENTRYPOINT ["./fn-server"]
+ENV MIX_ENV=prod
+
+# Install dependencies
+COPY mix.exs mix.lock ./
+RUN mix deps.get --only prod
+RUN mix deps.compile
+
+# Copy application code
+COPY config config
+COPY lib lib
+
+# Compile and build release
+RUN mix compile
+RUN mix release
+
+# Lightweight runtime image
+FROM alpine:3.20.3 AS app
+
+RUN apk add --no-cache libstdc++ openssl ncurses-libs
+
+WORKDIR /app
+
+RUN chown nobody:nobody /app
+
+USER nobody:nobody
+
+# Copy release from build stage
+COPY --from=build --chown=nobody:nobody /app/_build/prod/rel/koto_cms ./
+
+ENV HOME=/app
+ENV PORT=3000
+
+# Run the server
+CMD ["bin/koto_cms", "start"]

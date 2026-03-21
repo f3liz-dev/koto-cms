@@ -6,10 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "deploy:frontend": "npm run build && node infrastructure/scripts/upload-frontend.js",
-    "docker:build": "docker build -f Dockerfile.backend -t koto-cms:latest .",
-    "docker:run": "docker run -p 3000:3000 --env-file .env koto-cms:latest"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@mdit-vue/plugin-sfc": "^3.0.2",
@@ -18,6 +15,7 @@
     "dompurify": "^3.3.3",
     "front-matter": "^4.0.2",
     "gray-matter": "^4.0.3",
+    "hono": "^4.7.9",
     "markdown-it": "^14.1.0",
     "markdown-it-container": "^4.0.0",
     "preact": "^10.27.2",

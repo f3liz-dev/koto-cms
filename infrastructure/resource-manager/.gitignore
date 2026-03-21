@@ -1,4 +1,0 @@
-stack.zip
-*.tfstate
-*.tfstate.*
-.terraform/
