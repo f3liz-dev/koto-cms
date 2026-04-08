@@ -1,5 +1,4 @@
 import { MarkdownEditor } from "../MarkdownEditor.jsx";
-import { PreviewPane } from "./PreviewPane.jsx";
 import { LocaleTabs } from "./LocaleTabs.jsx";
 
 export function FileEditor({
@@ -9,21 +8,14 @@ export function FileEditor({
   isDirty,
   prInfo,
   isMarkdown,
-  isPreviewable,
   draftContent,
   setDraftContent,
   editorKey,
-  onSyncPoint,
   onDelete,
   onMarkReady,
   focusMode,
   setFocusMode,
-  previewTab,
-  setPreviewTab,
-  previewFrameRef,
-  previewResult,
-  initialScrollY,
-  onPreviewScrollY,
+  previewUrl,
   currentLocales,
   activeLocale,
   onSwitchLocale,
@@ -37,12 +29,6 @@ export function FileEditor({
           <span class="text-sm font-semibold text-on-surface">{filePath}</span>
         </div>
         <div class="flex items-center gap-2">
-          {isPreviewable ? (
-            <button class="flex items-center gap-1 rounded-lg bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface hover:bg-surface-container" onClick={() => setPreviewTab(true)}>
-              <span class="material-symbols-outlined text-sm">visibility</span>
-              <span>Preview</span>
-            </button>
-          ) : null}
           <button class="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-on-primary" onClick={() => setFocusMode(false)}>
             <span>Exit</span>
             <span class="material-symbols-outlined text-sm">close</span>
@@ -71,14 +57,13 @@ export function FileEditor({
         <LocaleTabs locales={currentLocales} activeLocale={activeLocale} onSwitch={onSwitchLocale} />
       ) : null}
 
-      <div class={`editor-workspace${isPreviewable && !focusMode ? " has-preview" : ""}`}>
+      <div class="editor-workspace">
         <div class="editor-textarea-wrap writing-canvas custom-scrollbar">
           {isMarkdown ? (
             <MarkdownEditor
               editorKey={editorKey}
               value={draftContent}
               onChange={setDraftContent}
-              onSyncPoint={onSyncPoint}
             />
           ) : (
             <textarea
@@ -89,14 +74,6 @@ export function FileEditor({
             />
           )}
         </div>
-        {isPreviewable && !focusMode ? (
-          <PreviewPane 
-            frameRef={previewFrameRef} 
-            previewResult={previewResult} 
-            initialScrollY={initialScrollY} 
-            onScrollY={onPreviewScrollY} 
-          />
-        ) : null}
       </div>
 
       <footer id="editor-footer" class="flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant/10 bg-surface-container-lowest px-4 py-3 md:px-8">
@@ -107,9 +84,22 @@ export function FileEditor({
           </a>
           <span class={`pr-state ${prInfo.state}`}>{prInfo.state}</span>
         </div>
-        <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-sm text-secondary icon-filled">cloud_done</span>
-          <span class="text-[10px] font-bold text-secondary uppercase tracking-widest">Synced</span>
+        <div class="flex items-center gap-3">
+          {previewUrl ? (
+            <a
+              class="flex items-center gap-1 rounded-lg bg-surface-container-low px-3 py-1.5 text-xs font-semibold text-on-surface hover:bg-surface-container"
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="material-symbols-outlined text-sm">open_in_new</span>
+              <span>Open Preview</span>
+            </a>
+          ) : null}
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm text-secondary icon-filled">cloud_done</span>
+            <span class="text-[10px] font-bold text-secondary uppercase tracking-widest">Synced</span>
+          </div>
         </div>
       </footer>
     </div>

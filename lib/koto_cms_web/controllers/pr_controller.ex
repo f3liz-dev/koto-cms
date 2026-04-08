@@ -41,4 +41,17 @@ defmodule KotoCmsWeb.PrController do
         |> put_status(500)
     end
   end
+
+  def preview(conn, %{"prNumber" => pr_number_str}) do
+    with {pr_number, ""} <- Integer.parse(pr_number_str),
+         {:ok, config} <- GitHub.get_config(),
+         {:ok, preview_url} <- GitHub.get_preview_url(pr_number, config) do
+      json(conn, %{previewUrl: preview_url})
+    else
+      :error ->
+        conn |> put_status(400) |> json(%{error: "invalid prNumber"})
+      {:error, reason} ->
+        conn |> put_status(500) |> json(%{error: reason})
+    end
+  end
 end

@@ -9,19 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mdit-vue/plugin-sfc": "^3.0.2",
     "@milkdown/crepe": "^7.17.1",
-    "@milkdown/utils": "^7.19.0",
-    "dompurify": "^3.3.3",
-    "front-matter": "^4.0.2",
-    "gray-matter": "^4.0.3",
-    "hono": "^4.7.9",
-    "markdown-it": "^14.1.0",
-    "markdown-it-container": "^4.0.0",
-    "preact": "^10.27.2",
-    "remark-directive": "^4.0.0",
-    "remark-frontmatter": "^5.0.0",
-    "vue": "^3.5.13"
+    "preact": "^10.27.2"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.2",

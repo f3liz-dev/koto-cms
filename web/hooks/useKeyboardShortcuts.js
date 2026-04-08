@@ -1,9 +1,9 @@
 import { useEffect } from "preact/hooks";
 
-export function useKeyboardShortcuts({ onSave, onEscape, canSave, focusMode, previewTab }) {
+export function useKeyboardShortcuts({ onSave, onEscape, canSave, focusMode }) {
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.key === "Escape" && (focusMode || previewTab)) {
+      if (e.key === "Escape" && focusMode) {
         e.preventDefault();
         onEscape();
         return;
@@ -15,5 +15,5 @@ export function useKeyboardShortcuts({ onSave, onEscape, canSave, focusMode, pre
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onSave, onEscape, canSave, focusMode, previewTab]);
+  }, [onSave, onEscape, canSave, focusMode]);
 }

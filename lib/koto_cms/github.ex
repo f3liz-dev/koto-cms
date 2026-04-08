@@ -120,6 +120,34 @@ defmodule KotoCms.GitHub do
     end
   end
 
+  def get_preview_url(pr_number, config) do
+    repo = repo()
+    trusted_users = get_in(config, ["preview", "trustedUsers"]) || []
+    url_patterns = get_in(config, ["preview", "urlPatterns"]) || []
+
+    if Enum.empty?(trusted_users) or Enum.empty?(url_patterns) do
+      {:ok, nil}
+    else
+      api_url = "#{@base_url}/repos/#{repo}/issues/#{pr_number}/comments?per_page=100"
+
+      with {:ok, comments} <- request(:get, api_url) do
+        preview_url =
+          comments
+          |> Enum.filter(fn comment ->
+            Enum.any?(trusted_users, fn u -> u == comment["user"]["login"] end)
+          end)
+          |> Enum.flat_map(fn comment ->
+            extract_urls(comment["body"] || "")
+          end)
+          |> Enum.find(fn url ->
+            Enum.any?(url_patterns, fn pattern -> glob_match?(url, pattern) end)
+          end)
+
+        {:ok, preview_url}
+      end
+    end
+  end
+
   def get_config(ref \\ nil) do
     case get_file(".koto.json", ref) do
       {:ok, %{content: content}} ->
@@ -275,6 +303,11 @@ defmodule KotoCms.GitHub do
     date = Date.utc_today() |> Date.to_iso8601()
     rand = :crypto.strong_rand_bytes(3) |> Base.encode16(case: :lower)
     "cms/#{slug}/#{date}-#{rand}"
+  end
+
+  defp extract_urls(text) do
+    Regex.scan(~r/https?:\/\/[^\s<>"'\)\]]+/, text)
+    |> Enum.map(&List.first/1)
   end
 
   defp glob_match?(path, pattern) do

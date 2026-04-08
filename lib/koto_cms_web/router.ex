@@ -38,5 +38,6 @@ defmodule KotoCmsWeb.Router do
     get "/prs", PrController, :list
     post "/pr-new", PrController, :create
     post "/pr-ready", PrController, :ready
+    get "/pr-preview", PrController, :preview
   end
 end

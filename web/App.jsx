@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from "preact/hooks";
+import { useEffect, useState, useMemo, useCallback } from "preact/hooks";
 import { useAuth } from "./hooks/useAuth.js";
 import { useBranches } from "./hooks/useBranches.js";
 import { useFileTree } from "./hooks/useFileTree.js";
@@ -9,9 +9,7 @@ import { LoginScreen } from "./components/LoginScreen.jsx";
 import { AppTopbar } from "./components/AppTopbar.jsx";
 import { Sidebar } from "./components/Sidebar.jsx";
 import { FileEditor } from "./components/FileEditor.jsx";
-import { PreviewTabOverlay } from "./components/PreviewTabOverlay.jsx";
 import { Toast } from "./components/Toast.jsx";
-import { renderVitepressPreview } from "./preview/renderVitepressPreview.js";
 import { buildVirtualTree, nestTree, extractLocale } from "./lib/virtualTree.js";
 import { Api } from "./api.js";
 
@@ -24,36 +22,14 @@ export function App() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
-  const [previewTab, setPreviewTab] = useState(false);
-  const [lazyPreviewContent, setLazyPreviewContent] = useState("");
   const [cmsConfig, setCmsConfig] = useState(null);
   const [virtualTree, setVirtualTree] = useState([]);
   const [contentGroups, setContentGroups] = useState(new Map());
   const [activeLocale, setActiveLocale] = useState(null);
   const [activeContentKey, setActiveContentKey] = useState(null);
-
-  const previewFrameRef = useRef(null);
-  const lastEditorSyncRef = useRef({ syncIndex: 0, blockProgress: 0, editorScrollRatio: 0 });
-  const previewScrollYRef = useRef(0);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const canSave = fileEditor.isDirty && Boolean(selectedBranch);
-
-  const previewResult = useMemo(() => {
-    if (!fileEditor.isPreviewable) return { html: "", warnings: [] };
-    return renderVitepressPreview(lazyPreviewContent, fileEditor.filePath);
-  }, [fileEditor.isPreviewable, lazyPreviewContent, fileEditor.filePath]);
-
-  // Lazy preview update
-  useEffect(() => {
-    if (!fileEditor.isPreviewable) {
-      setLazyPreviewContent("");
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      setLazyPreviewContent(fileEditor.draftContent);
-    }, 220);
-    return () => window.clearTimeout(timer);
-  }, [fileEditor.isPreviewable, fileEditor.draftContent, fileEditor.filePath]);
 
   const loadCmsTree = useCallback(async (ref) => {
     try {
@@ -91,59 +67,28 @@ export function App() {
     }
   }, [isAuthenticated, loadBranches]);
 
-  // Editor sync point handler
-  const onEditorSyncPoint = useCallback((syncPoint) => {
-    const next = {
-      syncIndex: Number.isFinite(syncPoint?.syncIndex) ? Math.floor(syncPoint.syncIndex) : 0,
-      blockProgress: Number.isFinite(syncPoint?.blockProgress) ? syncPoint.blockProgress : 0,
-      editorScrollRatio: Number.isFinite(syncPoint?.editorScrollRatio) ? Math.max(0, Math.min(1, syncPoint.editorScrollRatio)) : 0,
-    };
-    lastEditorSyncRef.current = next;
-
-    const frame = previewFrameRef.current;
-    if (!(frame instanceof HTMLIFrameElement)) return;
-    const target = frame.contentWindow;
-    if (!target) return;
-    target.postMessage(
-      {
-        type: "cms:sync-editor-block",
-        syncIndex: next.syncIndex,
-        blockProgress: next.blockProgress,
-        editorScrollRatio: next.editorScrollRatio,
-      },
-      "*"
-    );
-  }, []);
-
-  const onPreviewScrollY = useCallback((y) => {
-    previewScrollYRef.current = y;
-  }, []);
-
-  // Listen for preview scroll messages
+  // Fetch Cloudflare preview URL when PR number changes
   useEffect(() => {
-    const onMessage = (event) => {
-      const frame = previewFrameRef.current;
-      if (!(frame instanceof HTMLIFrameElement)) return;
-      if (event.source !== frame.contentWindow) return;
-      const data = event?.data;
-      if (!data || typeof data !== "object") return;
-      if (data.type !== "cms:preview-scroll-y") return;
-      if (Number.isFinite(data.y)) previewScrollYRef.current = data.y;
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, []);
+    const prNumber = fileEditor.prInfo?.number;
+    if (!prNumber) {
+      setPreviewUrl(null);
+      return;
+    }
+    let cancelled = false;
+    Api.getPrPreview(prNumber)
+      .then((data) => { if (!cancelled) setPreviewUrl(data.previewUrl || null); })
+      .catch(() => { if (!cancelled) setPreviewUrl(null); });
+    return () => { cancelled = true; };
+  }, [fileEditor.prInfo?.number]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onSave: handleSave,
     onEscape: () => {
       if (focusMode) setFocusMode(false);
-      if (previewTab) setPreviewTab(false);
     },
     canSave,
     focusMode,
-    previewTab,
   });
 
   async function handleSelectBranch(branchName) {
@@ -153,6 +98,7 @@ export function App() {
     setFocusMode(false);
     setActiveLocale(null);
     setActiveContentKey(null);
+    setPreviewUrl(null);
     if (!branchName) {
       setVirtualTree([]);
       setContentGroups(new Map());
@@ -332,21 +278,14 @@ export function App() {
                 isDirty={fileEditor.isDirty}
                 prInfo={fileEditor.prInfo}
                 isMarkdown={fileEditor.isMarkdown}
-                isPreviewable={fileEditor.isPreviewable}
                 draftContent={fileEditor.draftContent}
                 setDraftContent={fileEditor.setDraftContent}
                 editorKey={fileEditor.editorKey}
-                onSyncPoint={onEditorSyncPoint}
                 onDelete={handleDelete}
                 onMarkReady={handleMarkReady}
                 focusMode={focusMode}
                 setFocusMode={setFocusMode}
-                previewTab={previewTab}
-                setPreviewTab={setPreviewTab}
-                previewFrameRef={previewFrameRef}
-                previewResult={previewResult}
-                initialScrollY={previewScrollYRef.current}
-                onPreviewScrollY={onPreviewScrollY}
+                previewUrl={previewUrl}
                 currentLocales={currentLocales}
                 activeLocale={activeLocale}
                 onSwitchLocale={onSwitchLocale}
@@ -357,17 +296,6 @@ export function App() {
       </div>
 
       <Toast toast={toast} />
-
-      {previewTab && fileEditor.isPreviewable ? (
-        <PreviewTabOverlay
-          filePath={fileEditor.filePath}
-          previewFrameRef={previewFrameRef}
-          previewResult={previewResult}
-          initialScrollY={previewScrollYRef.current}
-          onPreviewScrollY={onPreviewScrollY}
-          onClose={() => setPreviewTab(false)}
-        />
-      ) : null}
     </>
   );
 }

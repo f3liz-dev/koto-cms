@@ -1,15 +1,9 @@
 import { defineConfig } from "vite";
-import { fileURLToPath, URL } from "node:url";
 import preact from "@preact/preset-vite";
 
 export default defineConfig({
   root: "web",
   plugins: [preact()],
-  resolve: {
-    alias: {
-      vitepress: fileURLToPath(new URL("./web/preview/mock-vitepress.js", import.meta.url)),
-    },
-  },
   build: {
     outDir: "../public",
     emptyOutDir: true,

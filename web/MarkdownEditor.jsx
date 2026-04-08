@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { Crepe } from "@milkdown/crepe";
-import { syncIndexPlugin } from "./syncIndexPlugin.js";
 import { LanguageDescription } from "@codemirror/language";
 import { languages as codeMirrorLanguages } from "@codemirror/language-data";
 import { markdown } from "@codemirror/lang-markdown";
@@ -53,65 +52,6 @@ function mergeFrontmatter(hasFrontmatter, frontmatter, body) {
   const content = body ?? "";
   return `---\n${fm}\n---\n${content}`;
 }
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-/**
- * Return all top-level ProseMirror block elements that have a data-sync-index.
- * These are stamped by syncIndexPlugin and correspond 1:1 with the preview's
- * data-sync-index attributes stamped by renderVitepressPreview.
- */
-function getIndexedBlocks(root) {
-  const proseMirror = root?.querySelector?.(".ProseMirror");
-  if (!proseMirror) return [];
-  return Array.from(proseMirror.children).filter(
-    (el) => el instanceof HTMLElement && el.hasAttribute("data-sync-index"),
-  );
-}
-
-/**
- * Get the current visual sync state: which data-sync-index is at the top
- * of the container, and how far (0–1) past that block's top we are.
- *
- * Returns { syncIndex, blockProgress }.
- */
-function getVisualSyncPoint(root, container) {
-  const blocks = getIndexedBlocks(root);
-  if (!blocks.length) return { syncIndex: 0, blockProgress: 0, editorScrollRatio: 0 };
-
-  const containerRect = container.getBoundingClientRect();
-  const scrollTop = container.scrollTop;
-  const maxScroll = Math.max(container.scrollHeight - container.clientHeight, 0);
-
-  // Normalized 0→1 scroll position of the editor.
-  // Sent alongside block coords so the preview can blend toward its own
-  // bottom as the editor approaches its end.
-  const editorScrollRatio = maxScroll > 0 ? clamp(scrollTop / maxScroll, 0, 1) : 0;
-
-  // Absolute top of each block within the scroll container
-  const blockTops = blocks.map((b) => {
-    const rect = b.getBoundingClientRect();
-    return rect.top - containerRect.top + scrollTop;
-  });
-
-  // Find the last block whose top is at or above the container's scroll top
-  let idx = 0;
-  for (let i = 0; i < blockTops.length; i++) {
-    if (blockTops[i] <= scrollTop) idx = i;
-    else break;
-  }
-
-  const blockTop = blockTops[idx];
-  const nextTop = idx + 1 < blockTops.length ? blockTops[idx + 1] : container.scrollHeight;
-  const span = nextTop - blockTop;
-  const progress = span > 0 ? clamp((scrollTop - blockTop) / span, 0, 1) : 0;
-  const syncIndex = parseInt(blocks[idx].getAttribute("data-sync-index") ?? "0", 10);
-
-  return { syncIndex, blockProgress: progress, editorScrollRatio };
-}
-
 
 /**
  * Find the actual scrolling ancestor of the editor root.
@@ -321,7 +261,7 @@ function decodeSpecialBlocksFromEditor(content) {
   return source.endsWith("\n") ? `${decoded}\n` : decoded;
 }
 
-export function MarkdownEditor({ value, editorKey, onChange, onSyncPoint }) {
+export function MarkdownEditor({ value, editorKey, onChange }) {
   const rootRef = useRef(null);
   const parsed = useMemo(() => splitFrontmatter(value), [value]);
   const codeMirrorLanguageList = useMemo(() => buildCodeMirrorLanguageList(), []);
@@ -331,14 +271,6 @@ export function MarkdownEditor({ value, editorKey, onChange, onSyncPoint }) {
   const hasFrontmatterRef = useRef(parsed.hasFrontmatter);
   const markdownBodyRef = useRef(parsed.body);
   const lastEmittedContentRef = useRef(value ?? "");
-
-  // FIX: Keep a stable ref to onSyncPoint so the editor setup effect
-  // never needs to re-run when the callback identity changes, yet always
-  // calls the latest version.
-  const onSyncPointRef = useRef(onSyncPoint);
-  useEffect(() => {
-    onSyncPointRef.current = onSyncPoint;
-  }, [onSyncPoint]);
 
   useEffect(() => {
     setHasFrontmatter(parsed.hasFrontmatter);
@@ -352,18 +284,6 @@ export function MarkdownEditor({ value, editorKey, onChange, onSyncPoint }) {
   useEffect(() => {
     let editor = null;
     let alive = true;
-    let detachSyncHandlers = () => {};
-
-    const emitSyncPoint = () => {
-      if (!alive) return;
-      if (typeof onSyncPointRef.current !== "function") return;
-      const root = rootRef.current;
-      if (!root) return;
-      const container = findScrollContainer(root);
-      if (!container) return;
-      const point = getVisualSyncPoint(root, container);
-      onSyncPointRef.current(point);
-    };
 
     (async () => {
       const initialEncodedBody = encodeSpecialBlocksForEditor(parsed.body);
@@ -387,9 +307,6 @@ export function MarkdownEditor({ value, editorKey, onChange, onSyncPoint }) {
         },
       });
 
-      // Register the sync-index decoration plugin before create()
-      editor.editor.use(syncIndexPlugin);
-
       editor.on((listener) => {
         listener.markdownUpdated((_ctx, markdown) => {
           if (!alive) return;
@@ -403,62 +320,15 @@ export function MarkdownEditor({ value, editorKey, onChange, onSyncPoint }) {
         });
       });
       await editor.create();
-      if (!alive) return;
-
-      const root = rootRef.current;
-      if (!root) return;
-      const proseMirror = root.querySelector(".ProseMirror");
-
-      // FIX: resolve scroll container at attach time (after editor is mounted)
-      // and also re-resolve on each scroll event, because layout mode may change.
-      if (!(proseMirror instanceof HTMLElement)) return;
-
-      const onKeyUp = () => emitSyncPoint();
-      const onMouseUp = () => emitSyncPoint();
-      const onFocusIn = () => emitSyncPoint();
-
-      // Scroll listener: attach to the actual scroll container, but also
-      // re-query dynamically in case focus mode swaps the scroll parent.
-      let currentScrollContainer = findScrollContainer(root);
-      const onScroll = () => emitSyncPoint();
-      currentScrollContainer.addEventListener("scroll", onScroll, { passive: true });
-
-      // When focus mode toggles, the scroll container changes. Watch for that
-      // by also listening at the document level with a capture scroll listener.
-      const onDocScroll = () => {
-        const newContainer = findScrollContainer(root);
-        if (newContainer !== currentScrollContainer) {
-          currentScrollContainer.removeEventListener("scroll", onScroll);
-          currentScrollContainer = newContainer;
-          currentScrollContainer.addEventListener("scroll", onScroll, { passive: true });
-        }
-        emitSyncPoint();
-      };
-      document.addEventListener("scroll", onDocScroll, { passive: true, capture: true });
-
-      proseMirror.addEventListener("keyup", onKeyUp);
-      proseMirror.addEventListener("mouseup", onMouseUp);
-      proseMirror.addEventListener("focusin", onFocusIn);
-
-      detachSyncHandlers = () => {
-        proseMirror.removeEventListener("keyup", onKeyUp);
-        proseMirror.removeEventListener("mouseup", onMouseUp);
-        proseMirror.removeEventListener("focusin", onFocusIn);
-        currentScrollContainer.removeEventListener("scroll", onScroll);
-        document.removeEventListener("scroll", onDocScroll, { capture: true });
-      };
-
-      requestAnimationFrame(() => emitSyncPoint());
     })().catch((err) => {
       console.error("Milkdown init failed", err);
     });
 
     return () => {
       alive = false;
-      detachSyncHandlers();
       editor?.destroy();
     };
-    // onChange and onSyncPoint intentionally omitted — both are accessed via refs
+    // onChange intentionally omitted — accessed via closure over refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorKey, codeMirrorLanguageList]);
 

@@ -71,4 +71,7 @@ export const Api = {
   markPrReady(prNumber, title, body) {
     return request("POST", "/api/pr-ready", { prNumber, title, body });
   },
+  getPrPreview(prNumber) {
+    return request("GET", `/api/pr-preview?prNumber=${prNumber}`);
+  },
 };
