@@ -1,40 +1,46 @@
-export function Sidebar({ 
-  repo, 
-  user, 
-  branch, 
-  files, 
-  dirPath, 
-  activeTreePath, 
-  sidebarOpen, 
-  onNavigateUp, 
-  onOpenFile, 
-  onNewFile, 
-  onLogout 
+import { FileTree } from "./FileTree.jsx";
+
+export function Sidebar({
+  repo,
+  user,
+  branch,
+  files,
+  dirPath,
+  activeTreePath,
+  sidebarOpen,
+  virtualTree,
+  onNavigateUp,
+  onOpenFile,
+  onNewFile,
+  onLogout
 }) {
+  const useCmsTree = virtualTree && virtualTree.length > 0;
+
   const treeRows = [];
-  
-  if (dirPath) {
-    treeRows.push(
-      <div class="tree-item tree-nav-up" data-type="nav-up" onClick={onNavigateUp}>
-        <span class="tree-icon">↰</span>..
-      </div>
-    );
-  }
-  
-  for (const item of files) {
-    const isDir = item.type === "dir";
-    const active = !isDir && activeTreePath === item.path;
-    treeRows.push(
-      <div
-        class={`tree-item${isDir ? " is-dir" : ""}${active ? " active" : ""}`}
-        data-path={item.path}
-        data-type={item.type}
-        onClick={() => isDir ? onOpenFile(item.path, true) : onOpenFile(item.path, false)}
-      >
-        <span class="tree-icon">{isDir ? "▸" : "·"}</span>
-        {item.name}
-      </div>
-    );
+  if (!useCmsTree) {
+    if (dirPath) {
+      treeRows.push(
+        <div class="tree-item tree-nav-up" data-type="nav-up" onClick={onNavigateUp}>
+          <span class="tree-icon">↰</span>..
+        </div>
+      );
+    }
+
+    for (const item of files) {
+      const isDir = item.type === "dir";
+      const active = !isDir && activeTreePath === item.path;
+      treeRows.push(
+        <div
+          class={`tree-item${isDir ? " is-dir" : ""}${active ? " active" : ""}`}
+          data-path={item.path}
+          data-type={item.type}
+          onClick={() => isDir ? onOpenFile(item.path, true) : onOpenFile(item.path, false)}
+        >
+          <span class="tree-icon">{isDir ? "▸" : "·"}</span>
+          {item.name}
+        </div>
+      );
+    }
   }
 
   return (
@@ -56,8 +62,14 @@ export function Sidebar({
         </div>
         <div class="space-y-0.5">
           {!branch ? <p class="empty-hint px-2 py-2 text-xs text-on-surface-variant">Select a branch above</p> : null}
-          {branch && !files.length && !dirPath ? <p class="empty-hint px-2 py-2 text-xs text-on-surface-variant">No files</p> : null}
-          {treeRows}
+          {branch && useCmsTree ? (
+            <FileTree tree={virtualTree} activePath={activeTreePath} onSelectFile={(path) => onOpenFile(path, false)} />
+          ) : (
+            <>
+              {branch && !files.length && !dirPath ? <p class="empty-hint px-2 py-2 text-xs text-on-surface-variant">No files</p> : null}
+              {treeRows}
+            </>
+          )}
         </div>
       </div>
 

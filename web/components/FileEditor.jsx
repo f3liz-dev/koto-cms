@@ -1,28 +1,32 @@
 import { MarkdownEditor } from "../MarkdownEditor.jsx";
 import { PreviewPane } from "./PreviewPane.jsx";
+import { LocaleTabs } from "./LocaleTabs.jsx";
 
-export function FileEditor({ 
-  filePath, 
-  fileSha, 
-  statusText, 
-  isDirty, 
-  prInfo, 
-  isMarkdown, 
-  isPreviewable, 
-  draftContent, 
-  setDraftContent, 
-  editorKey, 
-  onSyncPoint, 
-  onDelete, 
-  onMarkReady, 
-  focusMode, 
-  setFocusMode, 
-  previewTab, 
-  setPreviewTab, 
-  previewFrameRef, 
-  previewResult, 
-  initialScrollY, 
-  onPreviewScrollY 
+export function FileEditor({
+  filePath,
+  fileSha,
+  statusText,
+  isDirty,
+  prInfo,
+  isMarkdown,
+  isPreviewable,
+  draftContent,
+  setDraftContent,
+  editorKey,
+  onSyncPoint,
+  onDelete,
+  onMarkReady,
+  focusMode,
+  setFocusMode,
+  previewTab,
+  setPreviewTab,
+  previewFrameRef,
+  previewResult,
+  initialScrollY,
+  onPreviewScrollY,
+  currentLocales,
+  activeLocale,
+  onSwitchLocale,
 }) {
   return (
     <div id="editor-pane" class="editor-pane">
@@ -62,6 +66,10 @@ export function FileEditor({
           </button>
         </div>
       </div>
+
+      {currentLocales?.length > 1 ? (
+        <LocaleTabs locales={currentLocales} activeLocale={activeLocale} onSwitch={onSwitchLocale} />
+      ) : null}
 
       <div class={`editor-workspace${isPreviewable && !focusMode ? " has-preview" : ""}`}>
         <div class="editor-textarea-wrap writing-canvas custom-scrollbar">

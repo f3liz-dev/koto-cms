@@ -120,6 +120,53 @@ defmodule KotoCms.GitHub do
     end
   end
 
+  def get_config(ref \\ nil) do
+    case get_file(".koto.json", ref) do
+      {:ok, %{content: content}} ->
+        case Jason.decode(content) do
+          {:ok, config} -> {:ok, config}
+          _ -> {:ok, %{}}
+        end
+      _ -> {:ok, %{}}
+    end
+  end
+
+  def list_tree(ref \\ nil) do
+    repo = repo()
+    branch = ref || default_branch()
+    sha = get_latest_sha!(repo, branch)
+    url = "#{@base_url}/repos/#{repo}/git/trees/#{sha}?recursive=1"
+
+    case request(:get, url) do
+      {:ok, %{"tree" => tree}} ->
+        files =
+          tree
+          |> Enum.filter(fn item -> item["type"] == "blob" end)
+          |> Enum.map(fn item ->
+            name = item["path"] |> String.split("/") |> List.last()
+            %{path: item["path"], name: name, type: "file", sha: item["sha"]}
+          end)
+        {:ok, files}
+      error -> error
+    end
+  end
+
+  def list_filtered_tree(config, ref \\ nil) do
+    with {:ok, files} <- list_tree(ref) do
+      include = Map.get(config, "include", [])
+      exclude = Map.get(config, "exclude", [])
+      include_patterns = if Enum.empty?(include), do: ["**"], else: include
+
+      filtered =
+        Enum.filter(files, fn f ->
+          Enum.any?(include_patterns, &glob_match?(f.path, &1)) &&
+            !Enum.any?(exclude, &glob_match?(f.path, &1))
+        end)
+
+      {:ok, filtered}
+    end
+  end
+
   def commit_message(action, path, author) do
     """
     content: #{action} #{path}
@@ -228,6 +275,25 @@ defmodule KotoCms.GitHub do
     date = Date.utc_today() |> Date.to_iso8601()
     rand = :crypto.strong_rand_bytes(3) |> Base.encode16(case: :lower)
     "cms/#{slug}/#{date}-#{rand}"
+  end
+
+  defp glob_match?(path, pattern) do
+    regex_str =
+      pattern
+      |> String.split("**")
+      |> Enum.map(fn part ->
+        part
+        |> String.split("*")
+        |> Enum.map(&Regex.escape/1)
+        |> Enum.join("[^/]*")
+        |> String.replace("\\?", "[^/]")
+      end)
+      |> Enum.join(".*")
+
+    case Regex.compile("^#{regex_str}$") do
+      {:ok, regex} -> Regex.match?(regex, path)
+      _ -> false
+    end
   end
 
   defp token, do: System.get_env("GITHUB_BOT_TOKEN") || raise "GITHUB_BOT_TOKEN required"

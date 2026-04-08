@@ -29,6 +29,8 @@ defmodule KotoCmsWeb.Router do
     get "/me", UserController, :me
     patch "/me", UserController, :update
     get "/repo", RepoController, :index
+    get "/config", FileController, :config
+    get "/tree", FileController, :tree
     get "/files", FileController, :list
     get "/file", FileController, :show
     put "/file", FileController, :update

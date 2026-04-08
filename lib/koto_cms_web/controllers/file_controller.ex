@@ -2,6 +2,24 @@ defmodule KotoCmsWeb.FileController do
   use Phoenix.Controller
   alias KotoCms.GitHub
 
+  def config(conn, params) do
+    ref = params["ref"]
+    case GitHub.get_config(ref) do
+      {:ok, cfg} -> json(conn, cfg)
+      {:error, reason} -> conn |> put_status(500) |> json(%{error: reason})
+    end
+  end
+
+  def tree(conn, params) do
+    ref = params["ref"]
+    with {:ok, cfg} <- GitHub.get_config(ref),
+         {:ok, files} <- GitHub.list_filtered_tree(cfg, ref) do
+      json(conn, files)
+    else
+      {:error, reason} -> conn |> put_status(500) |> json(%{error: reason})
+    end
+  end
+
   def list(conn, params) do
     path = params["path"] || ""
     ref = params["ref"]

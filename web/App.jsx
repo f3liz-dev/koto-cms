@@ -12,6 +12,8 @@ import { FileEditor } from "./components/FileEditor.jsx";
 import { PreviewTabOverlay } from "./components/PreviewTabOverlay.jsx";
 import { Toast } from "./components/Toast.jsx";
 import { renderVitepressPreview } from "./preview/renderVitepressPreview.js";
+import { buildVirtualTree, nestTree, extractLocale } from "./lib/virtualTree.js";
+import { Api } from "./api.js";
 
 export function App() {
   const { user, repo, loading, isAuthenticated, logout } = useAuth();
@@ -24,6 +26,11 @@ export function App() {
   const [focusMode, setFocusMode] = useState(false);
   const [previewTab, setPreviewTab] = useState(false);
   const [lazyPreviewContent, setLazyPreviewContent] = useState("");
+  const [cmsConfig, setCmsConfig] = useState(null);
+  const [virtualTree, setVirtualTree] = useState([]);
+  const [contentGroups, setContentGroups] = useState(new Map());
+  const [activeLocale, setActiveLocale] = useState(null);
+  const [activeContentKey, setActiveContentKey] = useState(null);
 
   const previewFrameRef = useRef(null);
   const lastEditorSyncRef = useRef({ syncIndex: 0, blockProgress: 0, editorScrollRatio: 0 });
@@ -48,6 +55,30 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [fileEditor.isPreviewable, fileEditor.draftContent, fileEditor.filePath]);
 
+  const loadCmsTree = useCallback(async (ref) => {
+    try {
+      const cfg = await Api.getConfig(ref);
+      setCmsConfig(cfg);
+      const hasConfig = cfg && (cfg.include?.length || cfg.exclude?.length || cfg.i18n);
+      if (!hasConfig) {
+        setVirtualTree([]);
+        setContentGroups(new Map());
+        return false;
+      }
+      const flatFiles = await Api.getTree(ref);
+      const { nodes, contentGroups: groups } = buildVirtualTree(flatFiles, cfg);
+      const nested = nestTree(nodes);
+      setVirtualTree(nested);
+      setContentGroups(groups);
+      return true;
+    } catch {
+      setCmsConfig(null);
+      setVirtualTree([]);
+      setContentGroups(new Map());
+      return false;
+    }
+  }, []);
+
   // Focus mode body class
   useEffect(() => {
     document.body.classList.toggle("focus-mode", focusMode);
@@ -68,7 +99,7 @@ export function App() {
       editorScrollRatio: Number.isFinite(syncPoint?.editorScrollRatio) ? Math.max(0, Math.min(1, syncPoint.editorScrollRatio)) : 0,
     };
     lastEditorSyncRef.current = next;
-    
+
     const frame = previewFrameRef.current;
     if (!(frame instanceof HTMLIFrameElement)) return;
     const target = frame.contentWindow;
@@ -120,9 +151,18 @@ export function App() {
     setSidebarOpen(false);
     fileEditor.closeFile();
     setFocusMode(false);
-    if (!branchName) return;
+    setActiveLocale(null);
+    setActiveContentKey(null);
+    if (!branchName) {
+      setVirtualTree([]);
+      setContentGroups(new Map());
+      return;
+    }
     try {
-      await loadTree(branchName, "");
+      const usedCmsTree = await loadCmsTree(branchName);
+      if (!usedCmsTree) {
+        await loadTree(branchName, "");
+      }
     } catch (err) {
       showToast(err.message, "error");
     }
@@ -137,6 +177,14 @@ export function App() {
       setSidebarOpen(false);
       await fileEditor.openFile(path, selectedBranch);
       setActiveTreePath(path);
+      if (cmsConfig?.i18n && cmsConfig.i18n.mode !== "none") {
+        const { locale, contentKey } = extractLocale(path, cmsConfig.i18n);
+        setActiveLocale(locale);
+        setActiveContentKey(contentKey);
+      } else {
+        setActiveLocale(null);
+        setActiveContentKey(null);
+      }
     } catch (err) {
       fileEditor.setStatusText(err.message);
       showToast(err.message, "error");
@@ -165,7 +213,11 @@ export function App() {
     if (!canSave) return;
     try {
       await fileEditor.saveFile(selectedBranch);
-      await loadTree(selectedBranch, dirPath);
+      if (virtualTree.length) {
+        await loadCmsTree(selectedBranch);
+      } else {
+        await loadTree(selectedBranch, dirPath);
+      }
     } catch (err) {
       fileEditor.setStatusText(err.message);
       showToast(err.message, "error");
@@ -178,7 +230,11 @@ export function App() {
     fileEditor.setStatusText("Deleting…");
     try {
       await fileEditor.deleteFile(selectedBranch);
-      await loadTree(selectedBranch, dirPath);
+      if (virtualTree.length) {
+        await loadCmsTree(selectedBranch);
+      } else {
+        await loadTree(selectedBranch, dirPath);
+      }
       showToast(`Deleted ${fileEditor.filePath}`, "success");
     } catch (err) {
       fileEditor.setStatusText(err.message);
@@ -196,6 +252,18 @@ export function App() {
       showToast(err.message, "error");
     }
   }
+
+  const onSwitchLocale = useCallback(async (locale) => {
+    if (!activeContentKey || !contentGroups.has(activeContentKey)) return;
+    const localeMap = contentGroups.get(activeContentKey);
+    const node = localeMap.get(locale);
+    if (node) await handleOpenFile(node.realPath, false);
+  }, [activeContentKey, contentGroups]);
+
+  const currentLocales = useMemo(() => {
+    if (!activeContentKey || !contentGroups.has(activeContentKey)) return [];
+    return [...contentGroups.get(activeContentKey).keys()];
+  }, [activeContentKey, contentGroups]);
 
   async function handleLogout() {
     await logout();
@@ -235,6 +303,7 @@ export function App() {
             dirPath={dirPath}
             activeTreePath={activeTreePath}
             sidebarOpen={sidebarOpen}
+            virtualTree={virtualTree}
             onNavigateUp={() => navigateUp(selectedBranch)}
             onOpenFile={handleOpenFile}
             onNewFile={handleNewFile}
@@ -278,6 +347,9 @@ export function App() {
                 previewResult={previewResult}
                 initialScrollY={previewScrollYRef.current}
                 onPreviewScrollY={onPreviewScrollY}
+                currentLocales={currentLocales}
+                activeLocale={activeLocale}
+                onSwitchLocale={onSwitchLocale}
               />
             )}
           </main>

@@ -432,6 +432,86 @@ body {
   border-bottom-left-radius: 0;
 }
 
+/* ─── File tree (CMS virtual tree) ──────────────────────────── */
+
+.file-tree {
+  font-size: 0.78rem;
+}
+
+.file-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.5rem;
+  color: #5d605e;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-tree-item:hover {
+  background: #edeeec;
+  color: #303331;
+}
+
+.file-tree-item.is-dir {
+  font-weight: 700;
+  color: #506549;
+}
+
+.file-tree-item .tree-icon {
+  width: 1rem;
+  text-align: center;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+.file-tree-item.active {
+  background: rgba(84, 95, 118, 0.08);
+  color: #545f76;
+  border-left: 2px solid #545f76;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* ─── Locale tabs ───────────────────────────────────────────── */
+
+.locale-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 1rem;
+  background: rgba(244, 244, 241, 0.7);
+  border-bottom: 1px solid rgba(176, 178, 176, 0.2);
+}
+
+.locale-tab {
+  border: 0;
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5d605e;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.locale-tab:hover {
+  background: rgba(84, 95, 118, 0.1);
+  color: #303331;
+}
+
+.locale-tab.active {
+  background: #545f76;
+  color: #ffffff;
+}
+
 /* ─── PR state badge ─────────────────────────────────────────── */
 
 .pr-state {

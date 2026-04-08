@@ -34,6 +34,16 @@ export const Api = {
   updateMe(patch) {
     return request("PATCH", "/api/me", patch);
   },
+  getConfig(ref) {
+    const q = new URLSearchParams();
+    if (ref) q.set("ref", ref);
+    return request("GET", `/api/config?${q}`);
+  },
+  getTree(ref) {
+    const q = new URLSearchParams();
+    if (ref) q.set("ref", ref);
+    return request("GET", `/api/tree?${q}`);
+  },
   listFiles(path = "", ref) {
     const q = new URLSearchParams();
     if (path) q.set("path", path);
