@@ -1,328 +1,158 @@
 # Koto
 
-A lightweight, stateless CMS backend that bridges **Fediverse (MiAuth)
-authentication** with **GitHub-based content storage**, built with **Elixir/Phoenix**.
+A lightweight, stateless CMS that bridges **Fediverse (MiAuth) authentication**
+with **GitHub-based content storage**, now running entirely on the **Cloudflare
+edge**: Workers + Durable Objects for the API, Workers Assets for the Svelte
+frontend.
 
-Editors log in with their Misskey handle. All GitHub commits are made by a
+Editors log in with their Fediverse handle. All GitHub commits are made by a
 single bot account, with the editor's identity preserved in git commit trailers.
 
-> **Note**: This project has been migrated from TypeScript/Deno to Elixir/Phoenix. See `MIGRATION_GUIDE.md` for details.
+## Stack
 
-## Quick Start
+- **Frontend**: Svelte 5 (runes) + TypeScript 7 (tsgo) + Tiptap v3 WYSIWYG
+  with Markdown/Markdoc round-trip
+- **Backend**: Cloudflare Worker + Durable Objects. One DO instance per GitHub
+  repository (tenant)
+- **Auth**: Fediverse MiAuth → HS256 JWT cookie, per-tenant signing secret
+- **Storage**: GitHub is the only source of truth. DO storage holds only
+  rate-limit counters
+
+## Repo layout
+
+```
+web/                           Svelte frontend source
+infrastructure/cloudflare-do/
+  src/
+    worker.ts                  edge entry
+    do.ts                      KotoCmsDO class (all API handlers)
+    github.ts, miauth.ts, session.ts, …
+  tsconfig.json                Worker-side tsconfig (separate lib/types)
+scripts/convert-markdoc.mjs    markdoc → VitePress CLI
+docs/editing-heuristics.md     editor UX research + gap tracking
+wrangler.toml                  Worker config (at root)
+vite.config.ts                 uses @cloudflare/vite-plugin → single dev server
+svelte.config.js, tsconfig.json
+package.json                   single package for frontend + worker
+dist/                          build output (client + worker bundle)
+```
+
+## Dev
 
 ```bash
-# Install Elixir dependencies
-mix deps.get
-
-# Configure environment
-cp .env.example .env
-# Generate secrets: mix phx.gen.secret
-# Edit .env with your values
-
-# Start the server
-mix phx.server
+pnpm install
+pnpm run dev        # vite + workerd in one server at http://localhost:5173
+pnpm run check      # svelte-check
+pnpm run typecheck  # tsgo (frontend tsconfig + worker tsconfig)
+pnpm run build      # → dist/client + dist/koto_cms (worker bundle + generated wrangler.json)
+pnpm run deploy     # wrangler deploy (reads from dist after build)
 ```
 
-Server runs at http://localhost:3000
+`pnpm run dev` starts Vite and runs the Worker in `workerd` inside the same
+process via `@cloudflare/vite-plugin`. Routes under `/api`, `/auth`, `/miauth`,
+`/health` hit the Durable Object; everything else is served by Vite/Workers
+Assets. No proxy, no port mismatch, HMR on both sides.
 
-For Docker:
-```bash
-docker compose up
+## Tenant config
+
+`infrastructure/cloudflare-do/wrangler.toml` declares a `TENANTS` env var —
+a JSON map keyed by `"owner/repo"`:
+
+```json
+{
+  "alice/my-docs": {
+    "githubToken": "ghp_…",
+    "sessionSecret": "…64+ random chars…",
+    "documentEditors": "@alice@example.social, @bob@example.social",
+    "defaultBranch": "main",
+    "sessionTtlHours": 8,
+    "sessionTokenVersion": 1,
+    "miauthCallbackUrl": "https://alice--my-docs.cms.example.com/miauth/callback",
+    "appName": "Koto"
+  }
+}
 ```
 
-See `README_ELIXIR.md` for detailed setup instructions.
+For production: `wrangler secret put TENANTS`.
 
----
+## Tenant routing
 
-## Architecture
+A request is routed to the correct DO instance via (in order):
 
-```
-Browser
-    │
-    ├─── Static Assets ──────────► OCI Object Storage
-    │
-    └─── API Requests ───────────► Container Instance (ARM64)
-                                        │
-                                        └──► GitHub API
-```
+1. `X-Koto-Repo: owner/repo` header
+2. Path prefix `/t/<owner>/<repo>/…` or `/tenants/<owner>/<repo>/…`
+3. Subdomain form `<owner>--<repo>.cms.example.com`
 
-**Authentication Flow:**
+The first matching rule wins and the Worker calls
+`env.KOTO_DO.idFromName("owner/repo")` to address the tenant's DO.
 
-1. User enters Fediverse handle → Server validates against allowlist
-2. Server generates MiAuth session URL → Redirect to Misskey instance
-3. User authorizes on Misskey → Callback to server
-4. Server verifies session → Issues signed JWT cookie
+## Markdoc → VitePress conversion
 
-**Key Properties:**
+Content is edited as [Markdoc](https://markdoc.dev/) (standard markdown plus
+`{% tag %}` blocks). The VitePress build that renders the final site runs in
+the *target* content repository, not here. Use the converter shipped in
+`web/lib/markdocToVitepress.ts` in that repo's build pipeline.
 
-- GitHub bot token never leaves the server
-- Stateless JWT sessions (no database/Redis)
-- All content stored in GitHub
-- Container-native deployment
+### Mapping
 
----
+| Markdoc | VitePress markdown |
+|---|---|
+| `{% callout type="info" %}…{% /callout %}` | `:::info … :::` |
+| `{% tip %} / {% warning %} / {% danger %} / {% details title="x" %}` | `:::tip` / `:::warning` / `:::danger` / `:::details x` |
+| `{% YouTube id="abc" /%}` | `<YouTube id="abc" />` |
+| `{% MyBlock attr=val %}…{% /MyBlock %}` | `<MyBlock attr="val">…</MyBlock>` |
+| frontmatter, code fences, prose | pass-through |
 
-## File Structure
-
-```
-koto-cms/
-├── Dockerfile                  # x86_64 Docker build
-├── Dockerfile.arm64            # ARM64 optimized build
-├── docker-compose.yml          # Local development
-├── .env.example.elixir         # Environment variable template
-├── mix.exs                     # Elixir project definition
-│
-├── web/                        # Frontend source (Vite + Preact + Milkdown)
-│   ├── index.html
-│   ├── App.jsx
-│   ├── api.js
-│   ├── MarkdownEditor.jsx
-│   └── styles/app.css
-│
-├── lib/
-│   ├── koto_cms/               # Business logic
-│   │   ├── github.ex           # GitHub REST API operations
-│   │   ├── miauth.ex           # MiAuth flow (initiate + callback)
-│   │   ├── session.ex          # Stateless JWT session
-│   │   └── allowlist.ex        # Editor allowlist validation
-│   └── koto_cms_web/           # Web layer
-│       ├── controllers/        # HTTP handlers
-│       ├── plugs/              # Middleware
-│       ├── router.ex           # Route definitions
-│       └── endpoint.ex         # HTTP endpoint
-│
-└── config/                     # Configuration files
-    ├── config.exs
-    ├── dev.exs
-    ├── test.exs
-    ├── prod.exs
-    └── runtime.exs
-```
-
----
-
-## Environment Variables
-
-| Variable                | Required | Default                                 | Description                               |
-| ----------------------- | -------- | --------------------------------------- | ----------------------------------------- |
-| `GITHUB_BOT_TOKEN`      | ✅       | —                                       | GitHub PAT with repo read/write           |
-| `GITHUB_REPO`           | ✅       | —                                       | `owner/repo`                              |
-| `SESSION_SECRET`        | ✅       | —                                       | HMAC signing secret (generate with `mix phx.gen.secret`) |
-| `SECRET_KEY_BASE`       | ✅       | —                                       | Phoenix secret (generate with `mix phx.gen.secret`) |
-| `SESSION_SIGNING_SALT`  | ✅       | —                                       | Session signing salt (generate with `mix phx.gen.secret`) |
-| `DOCUMENT_EDITORS`      | ✅*      | —                                       | Comma-separated `@user@instance` handles  |
-| `MIAUTH_CALLBACK_URL`   | ✅       | `http://localhost:3000/miauth/callback` | Publicly reachable callback URL           |
-| `GITHUB_BRANCH`         | —        | `main`                                  | Base branch                               |
-| `SESSION_TTL_HOURS`     | —        | `8`                                     | Session lifetime                          |
-| `SESSION_TOKEN_VERSION` | —        | `1`                                     | Token version for revocation              |
-| `SESSION_COOKIE_KEY`    | —        | `_koto_cms_key`                         | Session cookie name                       |
-| `APP_NAME`              | —        | `Koto`                                  | Name shown in MiAuth authorization screen |
-| `DOCUMENT_EDITORS_FILE` | —        | —                                       | Path to file with one handle per line     |
-| `FRONTEND_URL`          | ✅*      | —                                       | Object Storage URL for frontend assets    |
-| `PORT`                  | —        | `3000`                                  | Server port                               |
-| `PHX_HOST`              | —        | `localhost`                             | Phoenix host                              |
-| `LIVEVIEW_SIGNING_SALT` | —        | `dev_liveview_salt`                     | LiveView signing salt (dev only)          |
-
-*`DOCUMENT_EDITORS` or `DOCUMENT_EDITORS_FILE` must be set; otherwise all logins
-are rejected.
-
-*`FRONTEND_URL` is required for production deployments. For local development, use Vite dev server instead (`npm run dev`).
-
----
-
-## Deployment
-
-### OCI Container Instances (ARM A1)
-
-Simple, always-on deployment using ARM64 free tier.
-
-**Features:**
-- No cold starts (always-on container)
-- ARM A1 free tier (4 OCPUs + 24GB RAM)
-- Direct public IP access
-- OCI Vault for secrets
-- Cost: ~$0.03/month
-
-**Quick Deploy:**
+### CLI example
 
 ```bash
-cd infrastructure
-terraform init
-terraform apply
+# single file
+node --experimental-strip-types scripts/convert-markdoc.mjs src/foo.md dist/foo.md
+
+# via stdin
+cat src/foo.md | node --experimental-strip-types scripts/convert-markdoc.mjs > dist/foo.md
 ```
 
-See [infrastructure/MANUAL_DEPLOY.md](infrastructure/MANUAL_DEPLOY.md) for complete step-by-step instructions.
+For a VitePress target repo, typical integration is either:
 
-> ⚠️ `SESSION_SECRET` and `SECRET_KEY_BASE` must be identical across all instances. Store them in OCI Vault. To invalidate all sessions, rotate the secrets.
+1. Copy `web/lib/markdocToVitepress.ts` into the target repo and call it from
+   a small preprocess script that walks `docs/**/*.md` before `vitepress build`.
+2. Or, via `"pnpm markdoc:convert"` that shells out to
+   `scripts/convert-markdoc.mjs` for each file (simplest).
 
-### Local Development
+The converter is a pure string function with no runtime dependencies, so it
+vendors cleanly.
 
-**Backend:**
-```bash
-cp .env.example.elixir .env
-mix deps.get
-mix phx.server
-```
-
-**Frontend:**
-```bash
-npm install
-npm run dev
-```
-
-Frontend runs at http://localhost:5173, backend at http://localhost:3000.
-
-**Docker Compose:**
-```bash
-cp .env.example.elixir .env
-docker compose up
-npm run dev  # Frontend in separate terminal
-```
-
----
-
-## Login Flow
-
-**Step 1 — Editor enters handle**
-
-```
-GET /auth/login?handle=@alice@misskey.io
-→ { sessionUrl: "https://misskey.io/miauth/abc123...", sessionId: "abc123..." }
-```
-
-**Step 2 — Editor authorizes in Misskey**
-
-The browser opens the `sessionUrl`. The user taps "Authorize" in Misskey.
-
-**Step 3 — Callback**
-
-```
-GET /miauth/callback?session=abc123...
-→ 302 Redirect /  +  Set-Cookie: cms_session=<JWT>
-```
-
-From this point, the JWT cookie is sent automatically on every API request.
-
----
-
-## Commit Attribution
-
-Every commit is authored by the bot but carries editor identity as git trailers:
-
-```
-content: update docs/getting-started.md
-
-Co-authored-by: Alice <alice+misskey.io@users.noreply.fediverse>
-Fediverse: `@alice@misskey.io`
-```
-
-Editors can also set a custom email via
-`PATCH /api/me { "custom_email": "real@example.com" }`.
-
----
-
-## API Reference
-
-### Public
-
-| Method | Path                   | Description                     |
-| ------ | ---------------------- | ------------------------------- |
-| `GET`  | `/health`              | Liveness probe                  |
-| `GET`  | `/auth/login?handle=…` | Initiate MiAuth                 |
-| `GET`  | `/miauth/callback`     | Complete MiAuth redirect, set JWT cookie |
-| `POST` | `/auth/logout`         | Clear session cookie            |
-
-### Protected (requires session cookie)
-
-| Method   | Path                              | Description                              |
-| -------- | --------------------------------- | ---------------------------------------- |
-| `GET`    | `/api/me`                         | Current user info                        |
-| `PATCH`  | `/api/me`                         | Update `custom_email`                    |
-| `GET`    | `/api/files?path=…&ref=…`         | List directory                           |
-| `GET`    | `/api/file?path=…&ref=…`          | Get file content + sha                   |
-| `PUT`    | `/api/file`                       | Create / update file (commits to branch) |
-| `DELETE` | `/api/file?path=…&sha=…&branch=…` | Delete file                              |
-| `GET`    | `/api/prs`                        | List open CMS PRs for current user       |
-| `POST`   | `/api/pr-new`                     | Create a fresh working branch            |
-| `POST`   | `/api/pr-ready`                   | Convert draft PR → ready for review      |
-
----
-
-## Running Tests
+## Deploy
 
 ```bash
-mix test
+pnpm run build                              # frontend → public/
+cd infrastructure/cloudflare-do
+pnpm run deploy                             # wrangler deploy
 ```
 
-For coverage:
-```bash
-mix test --cover
-```
+## HTTP API
 
----
+All endpoints require the tenant slug to resolve (see routing above) and most
+require a `cms_session` cookie (issued by `/miauth/callback`).
 
-## Security Notes
-
-- Bot PAT is **server-side only** — never sent to the browser
-- JWT sessions use **HMAC-SHA256** (HS256); cookie is `HttpOnly; SameSite=Lax`
-- Allowlist is checked **before** any Misskey API calls
-- Rate limiting: 60 req/min general, 10 req/min for auth endpoints
-- `SESSION_SECRET` rotation immediately invalidates all active sessions
-- Security headers: X-Frame-Options, CSP, X-Content-Type-Options
-- DOMPurify sanitization for preview rendering
-- Sandboxed iframes for untrusted content
-- Token versioning for session revocation
-
-**See [SECURITY.md](SECURITY.md) for complete security documentation.**
-
-### Session Revocation
-
-To invalidate all active sessions without rotating the secret:
-
-```bash
-# Increment token version
-export SESSION_TOKEN_VERSION=2
-
-# Restart the application
-# All tokens with version=1 will be rejected
-```
-
-### Secrets Management
-
-**Production:** Use OCI Vault for secrets (configured in `infrastructure/stack.tf`)
-
----
-
----
-
-## Limitations
-
-- MiAuth works with **Misskey-compatible instances only** (Misskey, Calckey, Sharkey, etc.)
-- Rate limiter is **in-memory per instance** (ETS-based) — resets on restart
-- Cannot revoke individual JWT sessions before expiry (rotate `SESSION_SECRET` to invalidate all)
-- Static allowlist — requires redeploy to add/remove editors
-
----
-
-## Migration from TypeScript/Deno
-
-This project was migrated from TypeScript/Deno to Elixir/Phoenix. See:
-- `MIGRATION_GUIDE.md` - Detailed migration documentation
-- `ELIXIR_MIGRATION_SUMMARY.md` - Quick overview
-- `README_ELIXIR.md` - Elixir-specific documentation
-
-The API remains 100% compatible with the original implementation.
-
----
-
-## Development vs Production
-
-| Aspect | Development | Production |
-|--------|-------------|------------|
-| Backend | Elixir standalone or Docker | OCI Container Instance |
-| Frontend | Vite dev server (port 5173) | OCI Object Storage |
-| `FRONTEND_URL` | Not set (empty) | Required (Object Storage URL) |
-| Container Registry | Local Docker | OCI Container Registry |
-| Cost | Free | ~$0.03/month |
-
-
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/health` | no | liveness |
+| GET | `/api/diagnostics` | no | config sanity |
+| GET | `/auth/login?handle=@x@y` | no | initiate MiAuth |
+| GET | `/miauth/callback?session=…` | no | complete MiAuth, set cookie |
+| POST | `/auth/logout` | no | clear cookie |
+| GET | `/api/me` | yes | current session |
+| PATCH | `/api/me` | yes | update custom email |
+| GET | `/api/repo` | yes | repo slug |
+| GET | `/api/config?ref=` | yes | `.koto.json` |
+| GET | `/api/tree?ref=` | yes | filtered file tree |
+| GET | `/api/files?path=&ref=` | yes | directory listing |
+| GET | `/api/file?path=&ref=` | yes | file content |
+| PUT | `/api/file` | yes | create/update file + ensure draft PR |
+| DELETE | `/api/file?path=&sha=&branch=` | yes | delete file + ensure draft PR |
+| GET | `/api/prs` | yes | user's open PRs |
+| POST | `/api/pr-new` | yes | create working branch |
+| POST | `/api/pr-ready` | yes | mark draft PR ready |
+| GET | `/api/pr-preview?prNumber=` | yes | extract preview URL from PR comments |

@@ -22,6 +22,11 @@ dist/
 .env.local
 .env.*.local
 
+# Local tenant config (read by vite-plugin koto-tenants-config) + generated dev vars
+.tenants.config.toml
+.tenants.prod.toml
+.dev.vars
+
 # Git
 .git/
 
